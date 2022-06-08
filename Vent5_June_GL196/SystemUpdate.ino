@@ -50,7 +50,7 @@ void systemUpdate()
     gpsSEC = gps.getSecond();
 
     // Data line to log to the CSV file on our SD card
-    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + ":" + String(gpsMIN) + ":" + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
+    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + ":" + String(gpsMIN) + ":" + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure,4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
 
     // *******If GPS Lock is obtained, log that data (if statement), otherwise we resort to using the pressure sensor, which can only reliably track altitude to 60k feet************
     latitude = gps.getLat(); // obtain the latitude from the GPS
@@ -196,7 +196,7 @@ void systemUpdate()
         pressCount = 0;
       }
       prevPress = msPressure;
-      if (pressCount >= 4) {
+      if (pressCount >= 5) { //changed this to 5 because then you need 10s of consistent ascent till it starts.
         FlightHasBegun = true;
         timeBeforeFlight = currTimeS;
       }

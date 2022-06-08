@@ -35,7 +35,7 @@ void systemSetup()
     Serial5.begin(UBLOX_BAUD);//starts communication to UBLOX
     gps.init();
     // change back to WHILE statement for flight!!!
-    while(!gps.setAirborne()) // loop should terminate once it's set to airborne mode. The LEDs will pulse to show it's not set
+    if(!gps.setAirborne()) // loop should terminate once it's set to airborne mode. The LEDs will pulse to show it's not set
     {
       Serial.println("Not Set to Airborne Mode");
       ledON1();

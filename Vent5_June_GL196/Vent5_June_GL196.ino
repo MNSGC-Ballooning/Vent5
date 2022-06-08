@@ -7,7 +7,7 @@
 
 //Major changes include:
 /*
-   Changes to the SD logging including: Fixed header so it accuratly portrays the ascent rates, Adding ave_ascent_rate to the SD log
+   Read the README.txt file
 */
 
 //==========================================================================================================================================
