@@ -4,9 +4,18 @@
 List of changes: 
 (add new lines to top of list whenever changes are made
 --------------------Format--------------------
-Date of Update: 
-Editor: 
-Major changes to code: 
+Date of Update: 6/8/22
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+---> Moved jiggle if statements down into a jiggle function:   ### The jiggle function is currently commented out and is not in use ebcause it doesnt work yet ###
+Funciton is to jiggle the servo if the servo is not within a specified range (Currently +/- 40 degrees) ie it got stuck for some reason
+Keep in mind: The range of +/- 40 is because there is not currently a fix for the servoPosition discrepency issue. possibly this is caused by calibration issue 
+of output voltage when getting the servoPos values. This has not been resolved
+---> Added a Max and Min servo position variable that logs the max and min degrees that the servo can reach. these are found out using a testing loop in the beginning 
+of system update. this loop only triggers once. This was origionally going to be in systemSetup but I have not gotten that to work yet, not sure why.
+these variables are also logged to the SD card now
+--->Added the 'SERVOPOS' serial command that returns current servo position in degrees
+---> Moved the checking of flapperstate if statement to the beginnign of the 2s loop. before it required a GPS lock to correct an out of place flapper, now it wont
 Emulated flight tested (y/n):
 Notes/Observations:
 Future suggestions or plans for changes: 

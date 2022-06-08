@@ -6,8 +6,8 @@
 
 // Function for main Vent opening (permanent opening)
 
-  void oneTimeOpen(unsigned long currTimeS, float lon) // Aim for slow descent
-  {
+void oneTimeOpen(unsigned long currTimeS, float lon) // Aim for slow descent
+{
   if (!AlreadyReachedPermanentOpening) //Only goes through this statement once. Starts the timer for balloon descent / termination. Else statement not required since the vent won't be closing
   {
     openVent();
@@ -35,7 +35,7 @@
     terminate();
     cutterState = "Released because balloon was in descent for 30 minutes after the final vent opening";
   }
-  }
+}
 
 
 // *********************************************************** Pre-Venting Functions ***********************************************************
@@ -161,89 +161,98 @@ void PreVenting2(unsigned long currTimeS, double avg_ascent_rate) //Two pieces o
 void openVent() {
   commandedServoPosition = openServo;
   ventServo.write(openServo);
+  
   //releaseServo.write(0);
   flapperState = "Open";
-  if (!jiggleTimerStarted) // Timer used to pace the servo before the if-statement. This way we can read the actual servo position
-  {
-    jiggleTimerStarted = true;
-    jiggleTimer = currTimeS;
-  }
-  if (jiggleTimer + 5 < currTimeS && jiggleTimerStarted)
-  {
-    if (servoPos() < (openServo - 20) || servoPos() > (openServo + 20) ) //The servo is out of position- this attempts to "jiggle" the servo back into position. Delays are used since this takes priority
-    {
-      ventServo.write(openServo - 10);
-      delay(500);
-      ventServo.write(openServo + 10);
-      delay(500);
-      ventServo.write(openServo - 10);
-      delay(500);
-      ventServo.write(openServo + 10);
-      delay(500);
-      ventServo.write(openServo);
-    }
-    ventServo.write(openServo);
-    jiggleTimerStarted = false;
-  }
+
+//  jiggle(servoMinPos); // servoMinPos is the minimum position in degrees that the servo can move to as found in the first loop of system update
+  
   if (emulationCheck == true && ventSent == false) { //bool condition for communication to emulator ////NEW
     Serial5.print("<RATE" + String(avg_ascent_rate) + ">");
     delay(5);
-    Serial5.print("<VENT1>");                        //communicating with the emulator that the vent has been opened
+    Serial5.print("<VENT1>");                 //communicating with the emulator that the vent has been opened
     ventSent = true;
   }
+  Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
 }
 
 // Function to close the vent (simply command the servo to rotate to the proper position)
 void closeVent() {
   commandedServoPosition = closeServo;
   ventServo.write(closeServo);
+  
   //releaseServo.write(0);
   flapperState = "Closed";
-  if (!jiggleTimerStarted) { //starting jiggle timer and setting jiggletimerStarted to true
-    jiggleTimerStarted = true;
-    jiggleTimer = currTimeS;
+
+  //if closeVent is called from system setup then make sure that the close vent degrees are the same
+  if(servoSetupFinished == false){
+    Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
   }
-  if (jiggleTimer + 5 < currTimeS && jiggleTimerStarted) //checks to see if has been jiggling for 5 seconds, if not yet 5 then continue
-  {
-    Serial.println("Checking servoPos: " + String(servoPos()) + "     Checking closeServo: " + String(closeServo));
-     if ((servoPos() < (closeServo - 40) || servoPos() > (closeServo + 40)) && jiggleTimer + 5 < currTimeS)
-    //above if statement checks if the servo is more than 40 degrees away from servo close (132) --> closedServo is a variabel that can differ for each mechanisim
-    { //The servo is out of position- this attempts to "jiggle" the servo back into position. Delays are used since this takes priority
-      Serial.print("Servo Pos: " + String(servoPos()));
-      ventServo.write(closeServo - 10);
-      Serial.println("Delay occuring in jiggle function");
-      delay(500);
-      ventServo.write(closeServo + 10);
-      Serial.println("Delay occuring in jiggle function");
-      delay(500);
-      ventServo.write(closeServo - 10);
-      Serial.println("Delay occuring in jiggle function");
-      delay(500);
-      ventServo.write(closeServo + 10);
-      Serial.println("Delay occuring in jiggle function");
-      delay(500);
-      ventServo.write(closeServo);
-    }
-    ventServo.write(closeServo);
-    jiggleTimerStarted = false;
-  }
+
+ // jiggle(servoMaxPos); //calling jiggle function, servoMaxPos is the maximum position in degrees that the servo can move to as found in the first loop of system update
+
   if (emulationCheck == true && ventSent == true) { //bool condition for communication to emulator   ////NEW
     Serial5.print("<VENT0>");                      //telling emulator that the vent has been closed
     ventSent = false;
   }
+ 
 }
 
-bool ascentRateReached(double beforeRate, double currentRate, double desiredRateReduction) {
+/////////////////////////////////////////////////////////////////////// THE JIGGLE FUNCTION dun dun dun /////////////////////////////////////////////////////
+/* Function to jiggle the servo if the servo is not within a specified range (Currently +/- 40 degrees) ie it got stuck for some reason
+Keep in mind: The range of +/- 40 is because there is not currently a fix for the servoPosition discrepency issue. possibly this is caused by calibration issue of output voltage when 
+getting the servoPos values. has not been resolved.
+
+*/
+
+void jiggle(int desiredServoPosition) { 
+  Serial.println("GOING INTO JIGGLE");
+ 
+  //starting jiggle timer and setting jiggletimerStarted to true
+  if (!jiggleTimerStarted) {
+    jiggleTimerStarted = true;
+    jiggleTimer = currTimeS;
+  }
+
+  if (jiggleTimer + 5 < currTimeS && jiggleTimerStarted) //checks to see if has been jiggling for 5 seconds, if not yet 5 then continue
+  {
+    Serial.println("Checking servoPos: " + String(servoPos()) + "     Checking desiredServoPosition: " + String(desiredServoPosition));
+
+    if ((servoPos() < (desiredServoPosition - 20) || servoPos() > (desiredServoPosition + 20)) && jiggleTimer + 5 < currTimeS)
+      //above if statement checks if the servo is more than 40 degrees away from commandedServoPosition (132) --> closedServo is a variabel that can differ for each mechanisim
+    { //The servo is out of position- this attempts to "jiggle" the servo back into position. Delays are used since this takes priority
+      Serial.println("############Jiggle delay jiggle delay ##################\nServo Pos: " + String(servoPos()));
+      
+      ventServo.write(desiredServoPosition - 10); //the "jiggling doesnt appear for closeVent because it does minus first
+      delay(500);
+      ventServo.write(desiredServoPosition + 10);
+      delay(500);
+      ventServo.write(desiredServoPosition - 10);
+      delay(500);
+      ventServo.write(desiredServoPosition + 10);
+      delay(500);
+      ventServo.write(desiredServoPosition);
+    }
+    ventServo.write(desiredServoPosition);
+    jiggleTimerStarted = false;
+  }
+}
+/////////////////////////////////////////////////////////////////////// END OF JIGGLE FUNCTION /////////////////////////////////////////////////////
+
+//function to check if the desired ascent rate has been reached.
+//inputs are ascent rate befeor venting (before rate) the current ascent rate, and desired ascent rate reduction in percentage
+//output is a bool telling if the current ascent rate is <= the desired ascent rate
+bool ascentRateReached(double beforeRate, double currentRate, double desiredRateReduction) { //NOTE: THE CURRENT RATE MIGHT WANT TO BE THE AVERAGE ASCENT RATE
   bool outputBool;
   //calculating percentage that prevent ascentrate has dropped since beginning of prevent 1 sequence
   double actualAscentRateReduction = 100  - ((currentRate / beforeRate) * 100);
   Serial.println("Ascent Rate Reduction: " + String(actualAscentRateReduction));
 
-  //checking if ascent rate has been achived
+  //checking if current ascent rate has sufficiently been reduced
   if (actualAscentRateReduction >= desiredRateReduction) {
     outputBool = true;
-    if (actualAscentRateReduction > 50) {
-      moreVent = false;
+    if (actualAscentRateReduction > 50) { //if the actual ascent rate reduction is more than half you dont need to vent any more
+      moreVent = false; //this bool says whether the Vent should be allowed to do any more prevent or big venting
     }
   }
   else {

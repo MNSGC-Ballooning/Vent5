@@ -4,8 +4,8 @@ void systemSetup()
 {
   Serial.begin(9600); // temporary, probably don't use on flight b/c of the gps
   delay(5000);
-  Serial.println("Setup Beginning... JULY 2021 Flight Code Being Run.");
-  Serial.println("6/7/22 ETJ Edit of ^^^^^^^");
+  Serial.println("Setup Beginning... June 2022 Flight Code Being Run.");
+  Serial.println("6/8/22 ETJ Edit of ^^^^^^^");
 
   // LED Setup
     ledSetup();
@@ -53,7 +53,7 @@ void systemSetup()
   // Built-in Teensy SD Card
     sdSetup();
 
-  // Servo/Flapper
+  // Servo/Flapper       <<<----------------------------- Adding funcitonality to record min and max values of Servo position 
     ventServo.attach(PWM_PIN);    // initialze servo
     closeVent(); //Open and close the vent to show we are up and running
     delay(1000);
@@ -65,6 +65,7 @@ void systemSetup()
     delay(1000);
     closeVent();
     delay(500);
+    
  
   Serial.println("Beginning!");
 }

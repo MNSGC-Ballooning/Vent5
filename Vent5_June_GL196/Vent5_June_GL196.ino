@@ -7,7 +7,8 @@
 
 //Major changes include:
 /*
-   Read the README.txt file
+   Read the README txt file
+   the jiggle function is currently not being used because it doesnt work yet. 
 */
 
 //==========================================================================================================================================
@@ -39,7 +40,7 @@ UbloxGPS gps = UbloxGPS(&ubloxSerial); //creates object for GPS tracking
 
 // SD Card
 #define chipSelect BUILTIN_SDCARD // "BUILDIN_SDCARD" indicates that you're using the onboard Teensy 3.5 SD Logger
-String header = "Flight Time(s),Time (millis),GPS Timestamp,Battery Temperature (F),Pressure (psi),Pressure Altitude (feet),Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
+String header = "Flight Time(s),Time (millis),GPS Timestamp,Battery Temperature (F),Pressure (psi),Pressure Altitude (feet),Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
 File datalog;
 File datalogIMU;
 char filename[] = "SDCARD00.csv"; // Default name of the SD log
@@ -52,8 +53,11 @@ Servo ventServo; // just a variable name for the venting system's flapper servo
 unsigned int serialByte;
 float servoFeedback; // instantaneous servo position value
 int openServo = 0; // The measured servo position for when the vent is fully open
-int closeServo = 132; // The measured servo position for when the vent is fully closed    THIS MUST BE CHECKED FOR EACH NEW AVIONICS/MECHANISIM PACKAGE
+int closeServo = 180; // The measured servo position for when the vent is fully closed    THIS MUST BE CHECKED FOR EACH NEW AVIONICS/MECHANISIM PACKAGE
 int commandedServoPosition = -999; //commmanded Servo Position is a variable logging the instructions given to the servo as to what degree it shoudl close to.
+bool servoSetupFinished = false; //this is the bool that tells when servo max and min degree positions have been catalogged
+int servoMaxPos = -999; //variables that logs the max degree that the current attached servo is able to turn. this is assumed the flapper is closed when servo in this position
+int servoMinPos = -999; //variables that logs the min degree that the current attached servo is able to turn. this is assumed the flapper is open when servo in this position
 
 ////////////////////////**********End Of Global Variables*********///////////////////////////
 ////////////////////////**********End Of Global Variables*********///////////////////////////

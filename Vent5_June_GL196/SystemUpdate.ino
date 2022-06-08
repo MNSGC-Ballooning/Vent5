@@ -3,10 +3,11 @@
 // System data collection and state machine
 void systemUpdate()
 {
+
   // Flash the LED appropriately
   led(); // flash the LED in the desired pattern
 
- // \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Updating Variables 'n' such \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ 
+  // \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Updating Variables 'n' such \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
   //Thermistor / heater / baro updates
   updateThermistor();
   setHeaterState();
@@ -27,21 +28,43 @@ void systemUpdate()
   // New GPS Update
   gps.update(); // refresh the GPS so it gives you new data
 
-  //delay(3); // For old GPS library only
-  // ^^^^^^^^^^ABOVE: Check for GPS data, update buffer if data available^^^^^^^^^^^^^
+  //This while statement check to see the min and max positions of the servo in open and closed positions. these variables are used later for jiggle logic
+  while (servoSetupFinished == false) {
+    ventServo.write(openServo); //opening vent fully
+    delay(1000);
+    servoMinPos = servoPos(); //minimum servo position because 0 is open
+    ventServo.write(closeServo);
+    delay(1000);
+    servoMaxPos = servoPos(); //minimum servo position because 0 is open
+    if (servoMaxPos > servoMinPos && servoMaxPos == servoPos()) { //checking that the servoMaxPos and servoMinPos have been set correctally
+      ventServo.write(openServo); //opening vent fully
+      delay(1000);
+      if (servoMinPos == servoPos()) { //if this second condition is met
+        Serial.println("Servo min/max successful");
+        Serial.println("Found servo max: " + String(servoMaxPos) + "    found servo min: " + String(servoMinPos));
+        servoSetupFinished = true;
+      }
+    } else {
+      Serial.println("Servo min/max failed, looping again");
+      Serial.println("Found servo max: " + String(servoMaxPos) + "    found servo min: " + String(servoMinPos));
+    }
+    ventServo.write(closeServo);
+    delay(1000);
+  }
+
 
   // obtain the current time (in milliseconds)
-  unsigned long currTime = millis(); 
+  unsigned long currTime = millis();
 
-  //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //Begining 2 second loop \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ 
+  //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Beginning the every-2s cycle   \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 
   if (currTime - prevTime > interval) // Interval is currently 2000 ms (or 2 seconds) as defined - this is the main loop/cycle
   {
-    
-    // **************Get Sensor Data and record it**********************
+
+    //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ updating timers //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     prevTime = millis(); //setting prevTime to the current time --> this is for all functions that need every 2 seconds. not only ascent rate
     currTimeS = currTime / 1000; // obtain the current time in seconds (convert from milliseconds to seconds)
-    if(FlightHasBegun){ //getting flight timer to record how long the balloon is considered to be flying because of the pressure decrease
+    if (FlightHasBegun) { //getting flight timer to record how long the balloon is considered to be flying because of the pressure decrease
       flightTime = currTimeS - timeBeforeFlight;
     }
 
@@ -50,25 +73,37 @@ void systemUpdate()
     gpsSEC = gps.getSecond();
 
     // Data line to log to the CSV file on our SD card
-    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + ":" + String(gpsMIN) + ":" + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure,4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
+    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + ":" + String(gpsMIN) + ":" + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure, 4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
 
+    //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ checking flapper state //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+    Serial.println("Checking flapper State: " + flapperState);
+    if (flapperState.equals("Open")) { //This checks to see if the vent needs to be "jiggled" to fix servo position in the case that it's unaligned
+      openVent();
+    } else {
+      closeVent();
+    }
+
+    //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ updating GPS variables //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     // *******If GPS Lock is obtained, log that data (if statement), otherwise we resort to using the pressure sensor, which can only reliably track altitude to 60k feet************
     latitude = gps.getLat(); // obtain the latitude from the GPS
     lon = gps.getLon(); // obtain the longitude from the GPS
     altFeet = gps.getAlt_feet(); // obtain the altitude (in feet) from the GPS
     numSats = gps.getSats(); // obtain the number of satellites from the gps
 
+
+    //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Calculating Ascent Rates  //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     Serial.println("Calculating gps_ascent_rate, currTime: " + String(currTime) + "\tprev_time2: " + String(prev_time2));
     gps_ascent_rate = 0.3048 * (((altFeet - prev_Control_Altitude) / (currTime - prev_time2)) * 1000); // calculate ascent rate and convert it to m/s
     press_ascent_rate = 0.3048 * (((pressureAltFeet - prev_Press_Altitude) / (currTime - prev_time2)) * 1000); // calculate ascent rate and convert it to m/s
-    
+
+
     if (GPS_LOCK == true) //if GPS lock is true then use GPS ascent rate calcultaed above, if not use pressure ascent rate for average ascent rate.
     {
       if (abs(altFeet - prev_Control_Altitude) > 1000) //if there is more than 1000ft of differance in the altitude hits claim bad hit
       {
         Serial.println("Bad GPS hit!");
         altFeet = prev_Control_Altitude + ascent_rate / 0.3048 * (currTime - prev_time2) / 1000;
-      } 
+      }
 
       ascent_rate = gps_ascent_rate;
 
@@ -85,49 +120,49 @@ void systemUpdate()
     }
 
     //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Adding new ascent rate into list of past 10 and calculating new average ascent rate //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-    
+
     avg_ascent_rate = 0; // reset before/after every loop, then calculated in the following for loop (averaged over the last 10 hits--or 20 seconds worth of data--to reduce noise)
-      
-      for (int i = 0; i < 10; i++) // for loop to sum the ascent rates. 
+
+    for (int i = 0; i < 10; i++) // for loop to sum the ascent rates.
+    {
+      if (i < 9)
       {
-        if (i < 9)
+        last_ten_ascent_rates[i] = last_ten_ascent_rates[i + 1];
+        if (last_ten_ascent_rates[i] != 0)
         {
-          last_ten_ascent_rates[i] = last_ten_ascent_rates[i + 1];
-          if (last_ten_ascent_rates[i] != 0)
-          {
-            avg_ascent_rate += last_ten_ascent_rates[i];
-            
-          }
-        }
-        if (i == 9)
-        {
-          last_ten_ascent_rates[i] = ascent_rate;
-          if (last_ten_ascent_rates[i] != 0)
-          {
-            avg_ascent_rate += last_ten_ascent_rates[i];
-            
-          }
+          avg_ascent_rate += last_ten_ascent_rates[i];
+
         }
       }
-      avg_ascent_rate = avg_ascent_rate / 10; // sumed up the last 10 ascent rates now divide by 10 to obtain the average ascent rate for this cycle
+      if (i == 9)
+      {
+        last_ten_ascent_rates[i] = ascent_rate;
+        if (last_ten_ascent_rates[i] != 0)
+        {
+          avg_ascent_rate += last_ten_ascent_rates[i];
 
-      // *****Below is printing to the serial monitor, convinent if you're testing with the serial cable*****
-      Serial.println("Average Ascent Rate (below) is:"); // printing to the serial monitor, convinent if you're testing with the serial cable
-      Serial.println(avg_ascent_rate); // printing to the serial monitor, convinent if you're testing with the serial cable
-      Serial.println("Average Ascent Rate Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
-      Serial.println("Last Ten Ascent Rates (below) are:"); // printing to the serial monitor, convinent if you're testing with the serial cable
-      Serial.println(String(last_ten_ascent_rates[0]) + "," + String(last_ten_ascent_rates[1]) + "," + String(last_ten_ascent_rates[2]) + "," + String(last_ten_ascent_rates[3]) + "," + String(last_ten_ascent_rates[4]) + "," + String(last_ten_ascent_rates[5]) + "," + String(last_ten_ascent_rates[6]) + "," + String(last_ten_ascent_rates[7]) + "," + String(last_ten_ascent_rates[8]) + "," + String(last_ten_ascent_rates[9]) + ",");
-      Serial.println("Last Ten Ascent Rates Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
-      // *****Above is printing to the serial monitor, convinent if you're testing with the serial cable*****
+        }
+      }
+    }
+    avg_ascent_rate = avg_ascent_rate / 10; // sumed up the last 10 ascent rates now divide by 10 to obtain the average ascent rate for this cycle
 
-    //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Adding GPS data to the 'message' string to put onto the SD card //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ 
+    // *****Below is printing to the serial monitor, convinent if you're testing with the serial cable*****
+    Serial.println("Average Ascent Rate (below) is:"); // printing to the serial monitor, convinent if you're testing with the serial cable
+    Serial.println(avg_ascent_rate); // printing to the serial monitor, convinent if you're testing with the serial cable
+    Serial.println("Average Ascent Rate Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
+    Serial.println("Last Ten Ascent Rates (below) are:"); // printing to the serial monitor, convinent if you're testing with the serial cable
+    Serial.println(String(last_ten_ascent_rates[0]) + "," + String(last_ten_ascent_rates[1]) + "," + String(last_ten_ascent_rates[2]) + "," + String(last_ten_ascent_rates[3]) + "," + String(last_ten_ascent_rates[4]) + "," + String(last_ten_ascent_rates[5]) + "," + String(last_ten_ascent_rates[6]) + "," + String(last_ten_ascent_rates[7]) + "," + String(last_ten_ascent_rates[8]) + "," + String(last_ten_ascent_rates[9]) + ",");
+    Serial.println("Last Ten Ascent Rates Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
+    // *****Above is printing to the serial monitor, convinent if you're testing with the serial cable*****
+
+    //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Adding GPS data to the 'message' string to put onto the SD card //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     prev_time2 = millis();
     prev_Press_Altitude = pressureAltFeet;
     prev_Control_Altitude = altFeet; //prev_Control_Altitude is set to the pressure altitude
-    GPSdata = "," + String(latitude, 4) + "," + String(lon, 4) + ","  + String(altFeet) + "," + String(numSats) + "," + String(ascent_rate) + "," + String(avg_ascent_rate)+ "," + String(gps_ascent_rate) + "," + String(press_ascent_rate); 
+    GPSdata = "," + String(latitude, 4) + "," + String(lon, 4) + ","  + String(altFeet) + "," + String(numSats) + "," + String(ascent_rate) + "," + String(avg_ascent_rate) + "," + String(gps_ascent_rate) + "," + String(press_ascent_rate);
     message += GPSdata; // add that GPS data string to the overall SD log message
 
-    
+
     // **********************DECLARE WHETHER THE GPS HAS HAD A RECENT LOCK OR NOT (with "recent" bring defined as 5 minutes--300 seconds--here)*****************************************
     if ((millis() - prev_time2) / 1000 > 300) // if more than 300 seconds (5 minutes) have passed since fresh GPS hits, declare that the GPS has lost its lock, for backup logic purposes
     {
@@ -150,7 +185,7 @@ void systemUpdate()
     }
 
 
-
+    Serial.println(" BEFORE STATE DETERMINATION ===> commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
@@ -205,6 +240,7 @@ void systemUpdate()
     Serial.println("FlightHasBegun and timeSince5kFeetS");
     Serial.println(FlightHasBegun);
     Serial.println(String(timeSince5kFeetS));
+
 
     //**************************************************************TERMINATION LOGIC BEGINS**************************************************************
     //**************************************************************TERMINATION LOGIC BEGINS**************************************************************
@@ -300,11 +336,6 @@ void systemUpdate()
       Control();
       suggestedState = State();
 
-      if (flapperState.equals("Open")) { //This checks to see if the vent needs to be "jiggled" to fix servo position in the case that it's unaligned
-        openVent();
-      } else {
-        closeVent();
-      }
 
       if (altFeet > preVentAlt1 || (currTimeS - timeBeforeFlight) > preVentTimeS1) // This is a temporary venting to help ensure that the balloon stack will reach the desired altitude later in the flight
       {
@@ -384,6 +415,11 @@ void systemUpdate()
     //**************************************************************VENTING LOGIC ENDS**************************************************************
 
     // BELOW IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
+    if (serialcommand == "SERVOPOS")
+    {
+      Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
+      serialcommand = "";
+    }
     if (serialcommand == "GOOF")
     {
       Serial.println("Testing vent 'jiggle'");
@@ -463,7 +499,7 @@ void systemUpdate()
     // ABOVE IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
 
     // Finally, add the last few variables to the message string, print out the data/message to the serial monitor, and log the message string to the SD Card
-    message += "," + heaterStatus + "," + flapperState + "," + String(servoPos()) + "," + String(commandedServoPosition)+ "," + String(cutterState) + "," + stateSuggest + "," + currentState + "," + ventReason;
+    message += "," + heaterStatus + "," + flapperState + "," + String(servoPos()) + "," + String(commandedServoPosition) + "," + String(servoMinPos) + "," + String(servoMaxPos) + "," + String(cutterState) + "," + stateSuggest + "," + currentState + "," + ventReason;
     //BELOW IS FOR TESTING
     Serial.println(header);
     //ABOVE IS FOR TESTING
