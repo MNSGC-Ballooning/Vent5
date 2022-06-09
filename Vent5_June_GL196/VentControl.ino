@@ -56,7 +56,7 @@ void PreVenting1(unsigned long currTimeS, double avg_ascent_rate) //Two pieces o
     beforeRate = ascent_rate;
     openVent();
     ventReason = "First pre-vent";
-    timeAtPreVenting1S = currTimeS;
+    timeAtPreVenting1S = currTimeS;2
   }
   if (!AlreadyFinishedPreVenting1 && (preVentingTimeS1 + preventLengthS1 < currTimeS))
   {

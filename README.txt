@@ -4,6 +4,19 @@
 List of changes: 
 (add new lines to top of list whenever changes are made
 --------------------Format--------------------
+Date of Update: 6/8/22 push #2
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+Tested previously pushed code with the emulator, prevent functions work, calling of termination function works
+Emulated flight tested (y/n): YES
+Notes/Observations:
+---> When testing with the emulator, whenever servo was not moving or commanded to move, the ascent rate was calculated correctally.
+This means when the vent was open during a preventing cycle the average ascent rate could be used possibly, exept for the calculation right before or 
+right after the servo moves. The plan for the next flight is to use the calculated ascent rate 30s, 60s, 90s, and 120s after venting is over to make decition of how
+long to vent the next time.
+Future suggestions or plans for changes: 
+---> going to change the prevent and vent functions to the specifications of GL196
+----------------------------------------------
 Date of Update: 6/8/22
 Editor: Ethan Thomson-Jewell
 Changes to code: 
@@ -16,9 +29,8 @@ of system update. this loop only triggers once. This was origionally going to be
 these variables are also logged to the SD card now
 --->Added the 'SERVOPOS' serial command that returns current servo position in degrees
 ---> Moved the checking of flapperstate if statement to the beginnign of the 2s loop. before it required a GPS lock to correct an out of place flapper, now it wont
-Emulated flight tested (y/n):
+Emulated flight tested (y/n): 
 Notes/Observations:
-Future suggestions or plans for changes: 
 ----------------------------------------------------
 Date of Update: 6/7/22
 Editor: Ethan Thompson-Jewell
