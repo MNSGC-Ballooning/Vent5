@@ -4,6 +4,28 @@
 List of changes: 
 (add new lines to top of list whenever changes are made
 --------------------Format--------------------
+Date of Update:
+Editor: 
+Changes to code: 
+---> 
+Emulated flight tested (y/n): 
+Notes/Observations:
+---> 
+Future suggestions or plans for changes: 
+---> 
+----------------------------------------------
+Date of Update: 6/9/22 push #1
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+---> added avgAscentRateAfterVenting function to record average ascent rates at 30s intervals after each round of venting is finished
+---> finished the first prevent funciton for GL196
+---> made functions that calculate the estimated time needed for the 
+Emulated flight tested (y/n): N
+Notes/Observations:
+---> Not yet tested the aveAscentRateAfterVenting functions
+Future suggestions or plans for changes: 
+---> going to change the prevent and vent functions to the specifications of GL196
+----------------------------------------------
 Date of Update: 6/8/22 push #2
 Editor: Ethan Thomson-Jewell
 Changes to code: 

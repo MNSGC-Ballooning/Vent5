@@ -40,7 +40,7 @@ UbloxGPS gps = UbloxGPS(&ubloxSerial); //creates object for GPS tracking
 
 // SD Card
 #define chipSelect BUILTIN_SDCARD // "BUILDIN_SDCARD" indicates that you're using the onboard Teensy 3.5 SD Logger
-String header = "Flight Time(s),Time (millis),GPS Timestamp,Battery Temperature (F),Pressure (psi),Pressure Altitude (feet),Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
+String header = "Flight Time(s),Time (millis),GPS Hr,GPS Min,GPS Sec,Battery Temperature (F),Pressure (psi),Pressure Altitude (feet),Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
 File datalog;
 File datalogIMU;
 char filename[] = "SDCARD00.csv"; // Default name of the SD log
@@ -80,7 +80,8 @@ unsigned long interval = 2000; // units of milliseconds, defines how much time i
 int currTimeS = 0; // the current time in seconds, usually defined as millis()/1000;
 int timeBeforeFlight = 1000000;
 int flightTime = 0; 
-double beforeRate; // before the ascent rate is reduced by venting
+double beforeRatePV1;
+double beforeRatePV2;// before the ascent rate is reduced by venting
 double ascent_rate = 5; // ascent rate in meters per second (m/s), set it to 5 for the first 10 datapoints (after the flight is detected to "begin" at 5000 feet) so it doesn't prematurely set off the cutter
 double gps_ascent_rate = 5;
 double press_ascent_rate = 5;
@@ -92,15 +93,15 @@ double prev_Control_Altitude; // this is the altitude reading from the GPS the l
 String GPSdata; // A string to put all of the relavant GPS data in (lat, long, alt, etc.)
 int numSats;
 String heaterState; // is the battery heater on or off? (not used in Spring 2021 venting system; heater always on since it's plugged directly into battery; lasts about 6 hours (with a 9v) when fully on
-unsigned long timeAtPreVenting1S = 100000000000; // The time (in seconds) when you reach the first pre-venting; initial value set to infinity so that it doesn't prematurely set off anything in the logic
+unsigned long timeAtPreVenting1S = 1000000000; // The time (in seconds) when you reach the first pre-venting; initial value set to infinity so that it doesn't prematurely set off anything in the logic
 bool AlreadyStartedPreVenting1 = false; // tells you whether you've started pre-venting 1 or not, helps with logic flow
 bool AlreadyFinishedPreVenting1 = false; // tells you whether you've finished the first pre-vent or not, helps with logic flow
-unsigned long timeAtPreventing2S = 100000000000000; // the time (seconds) when you reach the second pre-venting; initial time set to infinity to prevent premature logic failiure
+unsigned long timeAtPreventing2S = 100000000000; // the time (seconds) when you reach the second pre-venting; initial time set to infinity to prevent premature logic failiure
 bool AlreadyStartedPreventing2 = false; // same function as pre-venting 1's booleans
 bool AlreadyFinishedPreventing2 = false; // same function as pre-venting 1's booleans
-unsigned long timeAtPermanentOpening = 10000000000000; // The time (in seconds) at which you reach your permanent venting (close to 120,000 feet)
-bool AlreadyReachedPermanentOpening = false; // same function as the pre-venting booleans
-bool AlreadyFinishedPermanentOpening = false; // same function as the pre-venting booleans
+unsigned long timeAtBigVent = 10000000000; // The time (in seconds) at which you reach your permanent venting (close to 120,000 feet)
+bool AlreadyStartedBigVent = false; // same function as the pre-venting booleans
+bool AlreadyFinishedBigVent = false; // same function as the pre-venting booleans
 String cutterState = "OFF"; // this tells us the state of the cutters (on or off?) and the reason why they terminated/cut or tried to cut; this is logged to the SD card every cycle
 String flapperState; // this variable tells you whether the flapper supposed to be open or closed. this is logged to the SD card every cycle.
 bool NinetyKFeetpAltReached = false; // don't think that this variable is used anymore
@@ -128,14 +129,30 @@ float latitude, lon, altFeet; //GPS variables for positioning
 int gpsHR, gpsMIN, gpsSEC; // GPS variables for time stamp
 int preVentingTimeS1; //Acts as the count for the first pre-vent
 int preVentingTimeS2; //Acts as the count for the second pre-vent
+int bigVentTimeS;
 int finishventTimeS1 = 10000000; // saves the time when the first pre-vent finished
 int finishventTimeS2 = 10000000; // saves the time when the second pre-vent finished
+int finishBigVentTimeS = 1000000;
+//MIGHT NOT NEED BELOW
 int roundsOfVenting1 = 0;
 int roundsOfVenting2 = 0;
 bool moreVent = true; // for when venting has reduced the ascent rate for more than 50%
 bool reachedDesiredRateReduction1 = false;
 bool reachedDesiredRateReduction2 = false;
+//MIGHT NOT NEED ABOVE
 String ventReason = "None"; //Used to write to SD card the reason for the venting
+float avgAscentRateAt30PV1 = -999; //this and the following variables are recorded for calculations in future venting during flight
+float avgAscentRateAt60PV1 = -999;
+float avgAscentRateAt90PV1 = -999;
+float avgAscentRateAt120PV1;
+
+float avgAscentRateAt30PV2 = -999;
+float avgAscentRateAt60PV2 = -999;
+float avgAscentRateAt90PV2 = -999;
+float avgAscentRateAt120PV2;
+
+int estimatedTimeRequiredForBigVentPV1 = -999;
+int estimatedTimeRequiredForBigVentPV2 = -999;
 
 int terminationStartTimeS; //20 second timer to display LED patterns before terminating
 bool terminationBegun = false; //Once termination is called, this is set to true to start the termination timer
@@ -216,21 +233,24 @@ uint8_t cutReasonA = 0x22, cutReasonB = 0x22;
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 
-#define EASTERN_BOUNDARY -90 // Dodge Center
-#define WESTERN_BOUNDARY -95 // just west of Fairmont
-#define SOUTHERN_BOUNDARY 43.5 // Iowa border
-#define NORTHERN_BOUNDARY 45 // Faribault
+#define EASTERN_BOUNDARY -93.3 // Clarck's Grove
+#define WESTERN_BOUNDARY -94.3 // Biscay
+#define SOUTHERN_BOUNDARY 43.94 // Iowa border
+#define NORTHERN_BOUNDARY 44.85 // Waconia
 
 bool emulationCheck = true; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
 float desieredRateReduction = 10; // in precentange (%)
-int preventLengthS1 = 30; // in seconds
+int preventLengthS1 = 30; // in seconds         CURRENTLY SET FOR GL196
 int preventLengthS2 = 30; // in seconds
-int preVentAlt1 = 75000; // in feet(ft)
-int preVentAlt2 = 85000; // in feet(ft)
+int preVentAlt1 = 70000; // in feet(ft)         CURRENTLY SET FOR GL196
+int preVentAlt2 = 80000; // in feet(ft)         CURRENTLY SET FOR GL196
+int bigVentAlt = 90000; //in ft
 int preVentTimeS1 = 80 * 60;
-int preVentTimeS2 ; //NOT CURRENTLY SET: rn this si hard coded for 15 min after prevent1 finished Line ~338 in system update
+int preVentTimeS2 ; //NOT CURRENTLY SET: rn this is hard coded for 15 min after prevent1 finished Line ~338 in system update
 int terminateAlt = 95000;
 int terminateTimeS = 240 * 60; //this is time to terminate flight "master timer" usually set to 4 hours
+
+float targetAscentRateAfterBigVent = 3; //target for ascent rate in m/s
 
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT

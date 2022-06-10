@@ -73,7 +73,7 @@ void systemUpdate()
     gpsSEC = gps.getSecond();
 
     // Data line to log to the CSV file on our SD card
-    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + ":" + String(gpsMIN) + ":" + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure, 4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
+    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + "," + String(gpsMIN) + "," + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure, 4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
 
     //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ checking flapper state //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     Serial.println("Checking flapper State: " + flapperState);
@@ -210,7 +210,7 @@ void systemUpdate()
     }
     else if (GPS_LOCK == false)
     {
-      if (pressureAltFeet > 5000) // 5000 feet is the threshold to make sure that it doesn't prematurely vent or terminate when it's on the ground
+      if (pressureAltFeet > 5000 && fivekFeetReached == false) // 5000 feet is the threshold to make sure that it doesn't prematurely vent or terminate when it's on the ground
       { // basically this if statement is only called the first moment after you cross 5000 feet for the first time and
         // it sets the flight status as having begun which starts the backup flight timer and allows you to start running through termination and vent logic.
         // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_ten_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
@@ -265,21 +265,13 @@ void systemUpdate()
         Serial.println("Released because of backup flight timer");
         cutterState = "Released because of backup flight timer";
       }
-      //     if(AlreadyReachedPermanentOpening==true && altFeet < 80000) // if you've opened at 100,000 feet and have now completed the full descent back down to 80,000 feet, terminate the flight
-      //     {
-      //      terminate();
-      //      cutterState = "Popped because you went below 80000 feet upon descent, after opening"; //This is temporarily commented out since it now terminates at 100k altitude
-      //     }
-      //     if(avg_ascent_rate < -8.5) // **WARNING** April 11th, 2021 Flight Addition - Just for testing, as a backup for ensuring that we test termination; **WARNING** this is to ensure that you can release from the balloon neck and demonstrate termination, even if the balloon pops early and comes down fast. might or might not want for future flights? Ask Dr. Flaten. If you vent at high altitudes, it shouldn't be a problem, but if your venting descent rate is pretty fast, you might want to re-consider!
-      //     {
-      //      terminate();
-      //      cutterState = "Released because balloon popped but we still want to test the neck-release mechanism";
-      //     }
-      if (currentState == OUT_OF_BOUNDS) //Check to terminate when the balloon has crossed the coordinate boundaries
+    
+      if (currentState == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries
       {
         terminate();
         cutterState = "Realeased because balloon crossed flight boundaries";
       }
+      
       if ((preVentingTimeS1 + 10800 < currTimeS) && !AlreadyStartedPreVenting1) //Terminates if the flight has been in air for 3 hours and not hit the first pre-vent.
       {
         terminate();
@@ -290,12 +282,12 @@ void systemUpdate()
         terminate();
         cutterState = "Released because it took over an hour to reach the second pre-vent from the first pre-vent";
       }
-      if ((preVentingTimeS2 + 3600 < currTimeS) && AlreadyFinishedPreventing2 && !AlreadyReachedPermanentOpening) //Terminates when the balloon has hit pre-vent 2, but it has been an hour and not reached the final opening
+      if ((preVentingTimeS2 + 3600 < currTimeS) && AlreadyFinishedPreventing2 && !AlreadyStartedBigVent) //Terminates when the balloon has hit pre-vent 2, but it has been an hour and not reached the final opening
       {
         terminate();
         cutterState = "Released because it took over an hour to reach the final vent opening from the second pre-vent";
       }
-      if ((currentState == DESCENT || currentState == SLOW_DESCENT) && !AlreadyReachedPermanentOpening) { //If the balloon is coming down and has not reached the final opening, wait 30 minutes, then cut.
+      if ((currentState == DESCENT || currentState == SLOW_DESCENT) && !AlreadyStartedBigVent) { //If the balloon is coming down and has not reached the final opening, wait 30 minutes, then cut.
         if (!descentTimerStarted) {
           descentTimerStarted = true;
           descentTimer = currTimeS;
@@ -337,33 +329,37 @@ void systemUpdate()
       suggestedState = State();
 
 
-      if (altFeet > preVentAlt1 || (currTimeS - timeBeforeFlight) > preVentTimeS1) // This is a temporary venting to help ensure that the balloon stack will reach the desired altitude later in the flight
+      if (altFeet > preVentAlt1 || (currTimeS - timeBeforeFlight) > preVentTimeS1) //GL196 prevent1 Alt is 70000ft, prevent time is 80min
       {
-        PreVenting1(currTimeS, avg_ascent_rate); // 80,000 feet = 24.4 km = first pre-venting, we pre-vent here to make sure it doesn't pop prematurely (most balloons start popping above 100,000 feet or so, lighter ones sometimes higher)
+        PreVenting1(currTimeS, avg_ascent_rate);
       }
-      if (altFeet > preVentAlt2 || (finishventTimeS1 + (15 * 60) < currTimeS)) // This is a second temporary venting to help ensure that the balloon stack will reach the desired altitude later in the flight
+      if (altFeet > preVentAlt2 || (finishventTimeS1 + (15 * 60) < currTimeS)) //GL196 prevent2 Alt is 80000ft, time is 15min after prevent1
       {
-        PreVenting2(currTimeS, avg_ascent_rate); // 90,000 feet = 27.4 km = second pre-venting; we have a second pre-venting instead of one large one since it would take much longer to acheive altitude if we slowed all the way down 10,000 feet (3 km) earlier
+        PreVenting2(currTimeS, avg_ascent_rate);
       }
-      if (altFeet > terminateAlt || (finishventTimeS2 + (20 * 60) < currTimeS)) //Final vent, Nope , terminate.
+      if (altFeet > bigVentAlt || (finishventTimeS2 + (20 * 60) < currTimeS)) //GL196 big vent occuring at 90000 or 20min after second prevent
       {
+        bigVent(currTimeS, avg_ascent_rate);
+
+      }
+      if (altFeet >= 95000 || (finishBigVentTimeS + (20 * 60) < currTimeS)) { //GL196 if above 95000 then terminate
         terminate();
-        //        cutterState = "Released because balloon crossed 100k feet";
-        //        oneTimeOpen(currTimeS,lon); // this is the permanent opening at 30.5 km (100,000 feet) altitude. Feel free to set this higher for future flights since this might come up short
-        //        Serial.println("One-time permanent opening");
       }
-      if ((currentState == FLOAT || floatTimerStarted) && !AlreadyReachedPermanentOpening) {
+
+
+      if ((currentState == FLOAT || floatTimerStarted) && FlightHasBegun == true) { //checks to see if balloon is floating after flight has begun, if floating for 60min then terminate
         if (!floatTimerStarted) {
           floatTimerStarted = true;
           floatTimer = currTimeS;
-          openVent();
-          ventReason = "Open since balloon is in float before final vent opening"; //reached permanent opening?
+          // openVent();
+          //ventReason = "Open since balloon is in float before final vent opening"; //reached permanent opening?
         }
         if (floatTimer + 3600 < currTimeS) {
           terminate();
           cutterState = "Released because balloon started floating before final vent";
         }
       }
+
     }
     else // If GPS isn't working after one minute or so, resort to a  timer-based opening (This else statement is the backup logic, in the case that the GPS hasn't given you a hit for a few minutes)
     {
@@ -387,20 +383,21 @@ void systemUpdate()
         //      }
 
       }
-      if ((currTimeS - timeBeforeFlight) > (80 * 60)) // This is a temporary venting to help ensure that the balloon stack will reach the desired altitude later in the flight
+      if ((currTimeS - timeBeforeFlight) > (80 * 60)) // if time has been 80 Min then do a first prevent
       {
-        PreVenting1(currTimeS, avg_ascent_rate); // 80,000 feet = 24.4 km = first pre-venting, we pre-vent here to make sure it doesn't pop prematurely (most balloons start popping above 100,000 feet or so, lighter ones sometimes higher)
+        PreVenting1(currTimeS, avg_ascent_rate);
       }
-      if ( (finishventTimeS1 + (15 * 60) < currTimeS)) // This is a second temporary venting to help ensure that the balloon stack will reach the desired altitude later in the flight
+      if ( (finishventTimeS1 + (15 * 60) < currTimeS)) // do a second prevent 15Min after prevent 1 is finished
       {
-        PreVenting2(currTimeS, avg_ascent_rate); // 90,000 feet = 27.4 km = second pre-venting; we have a second pre-venting instead of one large one since it would take much longer to acheive altitude if we slowed all the way down 10,000 feet (3 km) earlier
+        PreVenting2(currTimeS, avg_ascent_rate);
       }
-      if ((finishventTimeS2 + (20 * 60) < currTimeS)) //Final vent, Nope , terminate.
+      if ((finishventTimeS2 + (20 * 60) < currTimeS)) //GL196 big vent occuring  20min after second prevent
       {
+        bigVent(currTimeS, avg_ascent_rate);
+
+      }
+      if ((finishBigVentTimeS + (20 * 60) < currTimeS)) { //GL196 if 20 min after big vent then terminate
         terminate();
-        //        cutterState = "Released because balloon crossed 100k feet";
-        //        oneTimeOpen(currTimeS,lon); // this is the permanent opening at 30.5 km (100,000 feet) altitude. Feel free to set this higher for future flights since this might come up short
-        //        Serial.println("One-time permanent opening");
       }
     }
 

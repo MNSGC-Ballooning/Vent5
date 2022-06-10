@@ -41,8 +41,7 @@ void led()
       ledON3();
     }
   }
-  else
-  if(terminationBegun || ((lon > EASTERN_BOUNDARY) || (lon < WESTERN_BOUNDARY) || (latitude > NORTHERN_BOUNDARY) || (latitude < SOUTHERN_BOUNDARY))){ //The balloon will be terminating or is out of bounds; Rapidly flash all LEDs
+  else if(terminationBegun || ((lon > EASTERN_BOUNDARY) || (lon < WESTERN_BOUNDARY) || (latitude > NORTHERN_BOUNDARY) || (latitude < SOUTHERN_BOUNDARY))){ //The balloon will be terminating or is out of bounds; Rapidly flash all LEDs
     if(millis()%200<100){
       ledON1();
       ledON2();
