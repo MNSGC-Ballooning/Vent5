@@ -40,7 +40,7 @@ UbloxGPS gps = UbloxGPS(&ubloxSerial); //creates object for GPS tracking
 
 // SD Card
 #define chipSelect BUILTIN_SDCARD // "BUILDIN_SDCARD" indicates that you're using the onboard Teensy 3.5 SD Logger
-String header = "Flight Time(s),Time (millis),GPS Hr,GPS Min,GPS Sec,Battery Temperature (F),Pressure (psi),Pressure Altitude (feet),Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
+String header = "Flight Time(s),Time (s),Time (millis),GPS Hr,GPS Min,GPS Sec,Battery Temperature (F),Pressure (psi),Pressure Altitude(feet),Suggested Bounds State,Current Bounds State,Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason,Est. Time Req BV PV1,Est. Time Req BV PV2";
 File datalog;
 File datalogIMU;
 char filename[] = "SDCARD00.csv"; // Default name of the SD log
@@ -185,9 +185,11 @@ float pressureBoundary3;
 #define DESCENT 0x05
 #define TEMP_FAILURE 0x06
 #define BATTERY_FAILURE 0x07
-#define OUT_OF_BOUNDS 0x08
 #define PAST_TIMER 0x09
 #define ERROR_STATE 0x10
+
+#define OUT_OF_BOUNDS 0x08
+#define IN_BOUNDS 0x11;
 
 String suggestedState = "Initialization";
 String stateReturn;
@@ -196,6 +198,10 @@ uint8_t currentState = INITIALIZATION; // state we are in, starts as initializat
 uint8_t SDcounter = 0;
 uint8_t ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0;
 uint8_t tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0;
+uint8_t boundsSuggest = IN_BOUNDS;
+uint8_t boundsCurrent = IN_BOUNDS;
+String boundsReturn = "";
+int boundsCounter = 0;
 
 #define M2MS 2*60000
 #define ALTITUDE_FLOOR 5000
@@ -238,7 +244,7 @@ uint8_t cutReasonA = 0x22, cutReasonB = 0x22;
 #define SOUTHERN_BOUNDARY 43.94 // Iowa border
 #define NORTHERN_BOUNDARY 44.85 // Waconia
 
-bool emulationCheck = true; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
+bool emulationCheck = false; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
 float desieredRateReduction = 10; // in precentange (%)
 int preventLengthS1 = 30; // in seconds         CURRENTLY SET FOR GL196
 int preventLengthS2 = 30; // in seconds

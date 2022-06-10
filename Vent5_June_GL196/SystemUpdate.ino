@@ -73,7 +73,7 @@ void systemUpdate()
     gpsSEC = gps.getSecond();
 
     // Data line to log to the CSV file on our SD card
-    message = String(flightTime) + "," + String(currTime) + "," + String(gpsHR) + "," + String(gpsMIN) + "," + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure, 4) + "," + String(pressureAltFeet); // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
+    message = String(flightTime) + "," + String(currTimeS) + "," + String(currTime) + "," + String(gpsHR) + "," + String(gpsMIN) + "," + String(gpsSEC) + "," + String(heaterTempValue) + "," + String(msPressure, 4) + "," + String(pressureAltFeet) + "," + boundsSuggest + "," + boundsCurrent; // the beginning of the message to be sent to our SD card. the ","'s (commas) are inserted as placeholders here since those variables weren't tracked/logged for this flight (see header to see which variables)
 
     //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ checking flapper state //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     Serial.println("Checking flapper State: " + flapperState);
@@ -215,6 +215,7 @@ void systemUpdate()
         // it sets the flight status as having begun which starts the backup flight timer and allows you to start running through termination and vent logic.
         // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_ten_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
         timeSince5kFeetS = currTimeS;
+        fivekFeetReached = true;
         ascent_rate = 5;
         last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
         last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
@@ -496,7 +497,7 @@ void systemUpdate()
     // ABOVE IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
 
     // Finally, add the last few variables to the message string, print out the data/message to the serial monitor, and log the message string to the SD Card
-    message += "," + heaterStatus + "," + flapperState + "," + String(servoPos()) + "," + String(commandedServoPosition) + "," + String(servoMinPos) + "," + String(servoMaxPos) + "," + String(cutterState) + "," + stateSuggest + "," + currentState + "," + ventReason;
+    message += "," + heaterStatus + "," + flapperState + "," + String(servoPos()) + "," + String(commandedServoPosition) + "," + String(servoMinPos) + "," + String(servoMaxPos) + "," + String(cutterState) + "," + stateSuggest + "," + currentState + "," + ventReason + "," + estimatedTimeRequiredForBigVentPV1 + "," + estimatedTimeRequiredForBigVentPV2;
     //BELOW IS FOR TESTING
     Serial.println(header);
     //ABOVE IS FOR TESTING

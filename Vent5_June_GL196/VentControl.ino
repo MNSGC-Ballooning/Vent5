@@ -33,9 +33,9 @@ void bigVent(unsigned long currTimeS, double avg_ascent_rate) {
     openVent();
     ventReason = "Open for Big Vent";
   }
-  //if you have not gotten the command to stop and havent vented for estimate time +60s (the 60s is there for extra)
+  //if you have not gotten the command to stop and havent vented for estimate time +90s (the 90s is there for extra)
   if (AlreadyFinishedBigVent == false) {
-    if (avg_ascent_rate <= 3 || (bigVentTimeS + estimatedTimeRequiredForBigVentPV2 + 60 < currTimeS)) { //if ave ascent rate is below 3 or safety timer is reached, stop venting
+    if (avg_ascent_rate <= 3 || (bigVentTimeS + estimatedTimeRequiredForBigVentPV2 + 90 < currTimeS)) { //if ave ascent rate is below 3 or safety timer is reached, stop venting
       AlreadyFinishedBigVent = true; //stop venting now
       finishBigVentTimeS = currTimeS;
       closeVent();
@@ -44,7 +44,7 @@ void bigVent(unsigned long currTimeS, double avg_ascent_rate) {
         ventReason = "Closed because Average Ascent Rate <= 3";
       }
       else {
-        ventReason = "Closed because Timer";
+        ventReason = "Closed because est. Time timer";
       }
       Serial.println("Finished Big Vent");
       Serial.println("Length of Venting: " + String(finishBigVentTimeS - bigVentTimeS));
@@ -89,7 +89,7 @@ void PreVenting1(unsigned long currTimeS, double avg_ascent_rate) //Two pieces o
     ventReason = "Closed after first pre-vent";
     Serial.println("Completing first pre-vent");
     Serial.println("Length of actual Venting: " + String(finishventTimeS1 - preVentingTimeS1));
-    Serial.println("Length told to prevent: " + String("preventLengthS1"));
+    Serial.println("Length told to prevent: " + String(preventLengthS1));
   }
   //function that if already finished venting, records the average ascent rate at 30s intervals for calculations in prevent 2
   avgAscentRateAfterVenting(AlreadyFinishedPreVenting1, finishventTimeS1, currTimeS, avgAscentRateAt30PV1, avgAscentRateAt60PV1, avgAscentRateAt90PV1, avgAscentRateAt120PV1);
@@ -188,6 +188,7 @@ int secondsToVent(float beforeVentAvgAscentRate, float postVentAvgAscentRate, fl
 void isVentingAllowed() {
   if (avg_ascent_rate <= 2.5) {
     Serial.println("No more Venting Allowed because ascent Rate is to low ( <2.5 )");
+    ventReason = "No Venting, aveAR < 2.5";
 
     AlreadyStartedPreVenting1 = true;
     AlreadyFinishedPreVenting1 = true;

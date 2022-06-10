@@ -51,7 +51,7 @@ void Control() {
   }
 
   if (((lon > EASTERN_BOUNDARY) || (lon < WESTERN_BOUNDARY) || (latitude > NORTHERN_BOUNDARY) || (latitude < SOUTHERN_BOUNDARY)) && !((lon == 0) && (latitude == 0))) {
-    stateSuggest = OUT_OF_BOUNDS;
+    boundsSuggest = OUT_OF_BOUNDS; //changed for GL196 code
   }
 
   if (altFeet < ALTITUDE_FLOOR) { //set to 5000 ft rn
@@ -258,9 +258,9 @@ String State() {
       }*/
 
     ////OUT OF BOUNDARY////
-    case OUT_OF_BOUNDS:
+    case OUT_OF_BOUNDS:  //for GL196 there is no out of bounds set currently to suggest State
 
-      Serial.println("Suggested State: Out of Bounds");
+      Serial.println("Suggested Bounds: Out of Bounds");
       stateReturn = "OOB"; //FOR TESTING PURPOSES
 
       if (currentState != OUT_OF_BOUNDS) { // criteria for entering Out of Boundary functionality
@@ -358,6 +358,32 @@ String State() {
       break;
 
   }
+
+   if(boundsSuggest == OUT_OF_BOUNDS) {//for GL196 there is no out of bounds set currently to suggest State
+
+      Serial.println("Suggested Bounds: Out of Bounds");
+      boundsReturn = "OOB"; //FOR TESTING PURPOSES
+
+      if (boundsCurrent != OUT_OF_BOUNDS) { // criteria for entering Out of Boundary functionality
+        boundCounter += 1; // increment out of boundary counter
+
+        if (boundCounter >= 180 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 180 consecutive state suggestions
+          boundsCurrent = OUT_OF_BOUNDS;
+        }
+      } 
+
+      if (currentState == OUT_OF_BOUNDS) { // operations while out of boundary
+        Serial.println("Current State: Out of Bounds");
+        cutReasonA = 0x07;
+        cutReasonB = 0x07;
+      }
+
+   } else { //suggested state is in bounds
+    boundsCounter = 0;
+    boundsCurrent = IN_BOUNDS;
+   }
+
+  
   Serial.println();
   if (cutReasonA != 0x22 || cutReasonB != 0x22) {
     Serial.print("CUT REASON A: ");
