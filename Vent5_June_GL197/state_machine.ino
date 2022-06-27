@@ -36,10 +36,10 @@ void Control() {
 
     //code to check if current calculated ascentRate is exactally zero, and if the ascentRate 4 cycles previous and 8 cycles previous behind are also zero.
     //if this is true that means that most likely there is a bad reading of altitude
-    if (last_ten_ascent_rates[9] == last_ten_ascent_rates[5] && last_ten_ascent_rates[9] == last_ten_ascent_rates[1]) { 
-      //since there is a known pattern of incorrect ascent rate calculations, dont change stateSuggest
-      return;
-    }
+//    if (last_ten_ascent_rates[9] == last_ten_ascent_rates[5] && last_ten_ascent_rates[9] == last_ten_ascent_rates[1]) { 
+//      //since there is a known pattern of incorrect ascent rate calculations, dont change stateSuggest
+//      return;
+//    }
     
     stateSuggest = FLOAT;
   }

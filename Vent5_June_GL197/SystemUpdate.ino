@@ -13,7 +13,7 @@ void systemUpdate()
   setHeaterState();
   updateBaro();
   pressureToAltitude();
-  // updateRadio();
+  updateRadio();
 
   // BELOW is necessary if you want to be able to send serial commands (not critical for flight, but super handy for testing)**********
   if (Serial.available()) { // need to constantly check for serial bytes/commands (as opposed to only every 2 seconds) so that's why this isn't inside the "if(currTime-prevTime>interval)" loop.
@@ -92,7 +92,7 @@ void systemUpdate()
 
 
     //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Calculating Ascent Rates  //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-    Serial.println("Calculating gps_ascent_rate, currTime: " + String(currTime) + "\tprev_time2: " + String(prev_time2));
+    Serial.println("Calculating gps_ascent_rate, currTime: " + String(currTime) + "\tprev_time2: " + String(prev_time2) + "\tRunTime: " + String(currTime - prev_time2));
     gps_ascent_rate = 0.3048 * (((altFeet - prev_Control_Altitude) / (currTime - prev_time2)) * 1000); // calculate ascent rate and convert it to m/s
     press_ascent_rate = 0.3048 * (((pressureAltFeet - prev_Press_Altitude) / (currTime - prev_time2)) * 1000); // calculate ascent rate and convert it to m/s
 
@@ -123,35 +123,39 @@ void systemUpdate()
 
     avg_ascent_rate = 0; // reset before/after every loop, then calculated in the following for loop (averaged over the last 10 hits--or 20 seconds worth of data--to reduce noise)
 
-    for (int i = 0; i < 10; i++) // for loop to sum the ascent rates.
+    for (int i = 0; i < 20; i++) // for loop to sum the ascent rates.
     {
-      if (i < 9)
+      if (i < 19)
       {
-        last_ten_ascent_rates[i] = last_ten_ascent_rates[i + 1];
-        if (last_ten_ascent_rates[i] != 0)
+        last_twenty_ascent_rates[i] = last_twenty_ascent_rates[i + 1];
+        if (last_twenty_ascent_rates[i] != 0)
         {
-          avg_ascent_rate += last_ten_ascent_rates[i];
+          avg_ascent_rate += last_twenty_ascent_rates[i];
 
         }
       }
-      if (i == 9)
+      if (i == 19)
       {
-        last_ten_ascent_rates[i] = ascent_rate;
-        if (last_ten_ascent_rates[i] != 0)
+        last_twenty_ascent_rates[i] = ascent_rate;
+        if (last_twenty_ascent_rates[i] != 0)
         {
-          avg_ascent_rate += last_ten_ascent_rates[i];
+          avg_ascent_rate += last_twenty_ascent_rates[i];
 
         }
       }
     }
-    avg_ascent_rate = avg_ascent_rate / 10; // sumed up the last 10 ascent rates now divide by 10 to obtain the average ascent rate for this cycle
+    avg_ascent_rate = avg_ascent_rate / 20; // sumed up the last 10 ascent rates now divide by 10 to obtain the average ascent rate for this cycle
 
     // *****Below is printing to the serial monitor, convinent if you're testing with the serial cable*****
     Serial.println("Average Ascent Rate (below) is:"); // printing to the serial monitor, convinent if you're testing with the serial cable
     Serial.println(avg_ascent_rate); // printing to the serial monitor, convinent if you're testing with the serial cable
     Serial.println("Average Ascent Rate Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
     Serial.println("Last Ten Ascent Rates (below) are:"); // printing to the serial monitor, convinent if you're testing with the serial cable
-    Serial.println(String(last_ten_ascent_rates[0]) + "," + String(last_ten_ascent_rates[1]) + "," + String(last_ten_ascent_rates[2]) + "," + String(last_ten_ascent_rates[3]) + "," + String(last_ten_ascent_rates[4]) + "," + String(last_ten_ascent_rates[5]) + "," + String(last_ten_ascent_rates[6]) + "," + String(last_ten_ascent_rates[7]) + "," + String(last_ten_ascent_rates[8]) + "," + String(last_ten_ascent_rates[9]) + ",");
+    for (int i = 0; i < 19; i++) {
+      Serial.print(String(last_twenty_ascent_rates[i]) + ",");
+    }
+    Serial.println(String(last_twenty_ascent_rates[19]));
+    //Serial.println(String(last_ten_ascent_rates[0]) + "," + String(last_ten_ascent_rates[1]) + "," + String(last_ten_ascent_rates[2]) + "," + String(last_ten_ascent_rates[3]) + "," + String(last_ten_ascent_rates[4]) + "," + String(last_ten_ascent_rates[5]) + "," + String(last_ten_ascent_rates[6]) + "," + String(last_ten_ascent_rates[7]) + "," + String(last_ten_ascent_rates[8]) + "," + String(last_ten_ascent_rates[9]) + ",");
     Serial.println("Last Ten Ascent Rates Printed Above."); // printing to the serial monitor, convinent if you're testing with the serial cable
     // *****Above is printing to the serial monitor, convinent if you're testing with the serial cable*****
 
@@ -203,8 +207,11 @@ void systemUpdate()
         fivekFeetReached = true;
         timeSince5kFeetS = currTimeS;
         ascent_rate = 5;
-        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
-        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
+        for (int i = 0; i < 20; i++) {
+          last_twenty_ascent_rates[i] = 5;
+        }
+        //        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
+        //        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
         avg_ascent_rate = 5;
       }
     }
@@ -217,22 +224,25 @@ void systemUpdate()
         timeSince5kFeetS = currTimeS;
         fivekFeetReached = true;
         ascent_rate = 5;
-        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
-        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
+        for (int i = 0; i < 20; i++) {
+          last_twenty_ascent_rates[i] = 5;
+        }
+        //        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
+        //        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
         avg_ascent_rate = 5;
       }
     }
     // to be added: to use the pressure drop when flight begins to estiblish an more accurate flight timer
     if (FlightHasBegun == false) {
 
-      if (msPressure < prevPress) {
+      if ((prevPress - msPressure) >=  0.01) {
         pressCount++;
       }
       else {
         pressCount = 0;
       }
       prevPress = msPressure;
-      if (pressCount >= 5) { //changed this to 5 because then you need 10s of consistent ascent till it starts.
+      if (pressCount >= 10) { //changed this to 10 because then you need 20s of consistent ascent till it starts.
         FlightHasBegun = true;
         timeBeforeFlight = currTimeS;
       }
@@ -266,13 +276,13 @@ void systemUpdate()
         Serial.println("Released because of backup flight timer");
         cutterState = "Released because of backup flight timer";
       }
-    
+
       if (currentState == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries
       {
         terminate();
         cutterState = "Realeased because balloon crossed flight boundaries";
       }
-      
+
       if ((preVentingTimeS1 + 10800 < currTimeS) && !AlreadyStartedPreVenting1) //Terminates if the flight has been in air for 3 hours and not hit the first pre-vent.
       {
         terminate();
@@ -288,7 +298,7 @@ void systemUpdate()
         terminate();
         cutterState = "Released because it took over an hour to reach the final vent opening from the second pre-vent";
       }
-      if ((currentState == DESCENT || currentState == SLOW_DESCENT) && !AlreadyStartedBigVent) { //If the balloon is coming down and has not reached the final opening, wait 30 minutes, then cut.
+      if ((currentState == DESCENT || currentState == SLOW_DESCENT) && !AlreadyStartedVentToFloat) { //If the balloon is coming down and has not reached the final opening, wait 30 minutes, then cut.
         if (!descentTimerStarted) {
           descentTimerStarted = true;
           descentTimer = currTimeS;
@@ -302,7 +312,24 @@ void systemUpdate()
         terminate();
         cutterState = "Released because balloon dropped below 4500 feet after reaching 5000 feet";
       }
+      if ((currentState == FLOAT || floatTimerStarted)) { //checks to see if balloon is floating after flight has begun, if floating for 60min then terminate
+        if (!floatTimerStarted) {
+          floatTimerStarted = true;
+          floatTimer = currTimeS;
+        }
+        // backup termination logic for when the balloon has been in float for too long
+        if (floatTimer + 3600 < currTimeS) {
+          terminate();
+          cutterState = "Released because balloon started floating before final vent";
+        }
+      }
+
+      if (avg_ascent_rate <= 0.25 && !backupFloatTimerStarted) {
+        backupFloatTimerStarted = true;
+        backupFloatTimer = currTimeS;
+      }
     }
+
 
 
     //**************************************************************TERMINATION LOGIC ENDS**************************************************************
@@ -328,38 +355,70 @@ void systemUpdate()
       Serial.println("Going through regular state machine logic (GPS working)");
       Control();
       suggestedState = State();
-
-
-      if (altFeet > preVentAlt1 || (currTimeS - timeBeforeFlight) > preVentTimeS1) //GL196 prevent1 Alt is 70000ft, prevent time is 80min
+      //////////////////////////////////////////////////////////////////// Flight Procedure //////////////////////////////////////////////////////////////////////////////
+      if (altFeet > 50000 && altFeet < 60000) //GL197 drafting
       {
-        PreVenting1(currTimeS, avg_ascent_rate);
-      }
-      if (altFeet > preVentAlt2 || (finishventTimeS1 + (15 * 60) < currTimeS)) //GL196 prevent2 Alt is 80000ft, time is 15min after prevent1
-      {
-        PreVenting2(currTimeS, avg_ascent_rate);
-      }
-      if (altFeet > bigVentAlt || (finishventTimeS2 + (20 * 60) < currTimeS)) //GL196 big vent occuring at 90000 or 20min after second prevent
-      {
+        if (roundsOfBigVent == 0) {
+          roundsOfBigVent++;
+        }
+        targetAscentRate = 4;
         bigVent(currTimeS, avg_ascent_rate);
 
       }
-      if (altFeet >= 95000 || (finishBigVentTimeS + (20 * 60) < currTimeS)) { //GL196 if above 95000 then terminate
+
+      if (altFeet > 60000 && altFeet < 70000) {
+        if (roundsOfBigVent == 1) {
+          roundsOfBigVent++;
+          AlreadyStartedBigVent = false;
+          AlreadyFinishedBigVent = false;
+        }
+        targetAscentRate = 3;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+
+      if (altFeet > 70000 && altFeet < 75000) {
+        if (roundsOfBigVent == 2) {
+          roundsOfBigVent++;
+          AlreadyStartedBigVent = false;
+          AlreadyFinishedBigVent = false;
+        }
+        targetAscentRate = 2;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+
+      if (altFeet > 75000 && altFeet < 80000) {
+        if (roundsOfBigVent == 3) {
+          roundsOfBigVent++;
+          AlreadyStartedBigVent = false;
+          AlreadyFinishedBigVent = false;
+        }
+        targetAscentRate = 1;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+      if (altFeet > 80000) {
+        VentToFloat(currTimeS, avg_ascent_rate);
+      }
+      if (altFeet > terminateAlt) {
         terminate();
-      }
-
-
-      if ((currentState == FLOAT || floatTimerStarted) && FlightHasBegun == true) { //checks to see if balloon is floating after flight has begun, if floating for 60min then terminate
-        if (!floatTimerStarted) {
-          floatTimerStarted = true;
-          floatTimer = currTimeS;
-          // openVent();
-          //ventReason = "Open since balloon is in float before final vent opening"; //reached permanent opening?
-        }
-        if (floatTimer + 3600 < currTimeS) {
-          terminate();
-          cutterState = "Released because balloon started floating before final vent";
+        if (!terminationBegun) {
+          cutterState = "Released because balloon is above or at termination altitude (90,000ft)";
         }
       }
+      if (floatTimer + 600 < currTimeS) {
+        terminate();
+        if (!terminationBegun) {
+          cutterState = "Released because balloon entered float state ten minutes ago";
+        }
+      }
+      if (backupFloatTimer + 1200 < currTimeS) {
+        terminate();
+        if (!terminationBegun) {
+          cutterState = "Released because balloon the avg ascent rate reached 0.25 m/s 20 mins ago";
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////// Flight Procedure //////////////////////////////////////////////////////////////////////////////
+
 
     }
     else // If GPS isn't working after one minute or so, resort to a  timer-based opening (This else statement is the backup logic, in the case that the GPS hasn't given you a hit for a few minutes)
@@ -375,29 +434,46 @@ void systemUpdate()
 
 
 
-        //        Serial.println("System_Time_Min is:");
+        //        Serial.println("System_Time_Min is: ");
         //        Serial.println(String(System_Time_Min));
         //        if(System_Time_Min > 110) // Vent will probably slow down, but it depends on
         //        {
         //          oneTimeOpen(currTimeS,lon); // Permanent vent opening
-        //          Serial.println("100k feet timer-based termination");
+        //          Serial.println("100k feet timer - based termination");
         //      }
 
       }
-      if ((currTimeS - timeBeforeFlight) > (80 * 60)) // if time has been 80 Min then do a first prevent
+      if (pressureAltFeet > 50000 && pressureAltFeet < 60000) //GL197 drafting
       {
-        PreVenting1(currTimeS, avg_ascent_rate);
-      }
-      if ( (finishventTimeS1 + (15 * 60) < currTimeS)) // do a second prevent 15Min after prevent 1 is finished
-      {
-        PreVenting2(currTimeS, avg_ascent_rate);
-      }
-      if ((finishventTimeS2 + (20 * 60) < currTimeS)) //GL196 big vent occuring  20min after second prevent
-      {
+        targetAscentRate = 4;
         bigVent(currTimeS, avg_ascent_rate);
 
       }
-      if ((finishBigVentTimeS + (20 * 60) < currTimeS)) { //GL196 if 20 min after big vent then terminate
+
+      if (pressureAltFeet > 60000 && pressureAltFeet < 70000) {
+        AlreadyStartedBigVent = false;
+        AlreadyFinishedBigVent = false;
+        targetAscentRate = 3;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+
+      if (pressureAltFeet > 70000 && pressureAltFeet < 75000) {
+        AlreadyStartedBigVent = false;
+        AlreadyFinishedBigVent = false;
+        targetAscentRate = 2;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+
+      if (pressureAltFeet > 75000 && pressureAltFeet < 80000) {
+        AlreadyStartedBigVent = false;
+        AlreadyFinishedBigVent = false;
+        targetAscentRate = 1;
+        bigVent(currTimeS, avg_ascent_rate);
+      }
+      if (pressureAltFeet > 80000) {
+        VentToFloat(currTimeS, avg_ascent_rate);
+      }
+      if ((pressureAltFeet > terminateAlt) || (floatTimer + 600 < currTimeS) || (backupFloatTimer + 1200 < currTimeS)) {
         terminate();
       }
     }
@@ -497,7 +573,8 @@ void systemUpdate()
     // ABOVE IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
 
     // Finally, add the last few variables to the message string, print out the data/message to the serial monitor, and log the message string to the SD Card
-    message += "," + heaterStatus + "," + flapperState + "," + String(servoPos()) + "," + String(commandedServoPosition) + "," + String(servoMinPos) + "," + String(servoMaxPos) + "," + String(cutterState) + "," + stateSuggest + "," + currentState + "," + ventReason + "," + estimatedTimeRequiredForBigVentPV1 + "," + estimatedTimeRequiredForBigVentPV2;
+    radioData = heaterStatus + ", " + flapperState + ", " + String(servoPos()) + ", " + String(commandedServoPosition) + ", " + String(servoMinPos) + ", " + String(servoMaxPos) + ", " + String(cutterState) + ", " + stateSuggest + ", " + currentState + ", " + ventReason;
+    message += ", " + radioData;
     //BELOW IS FOR TESTING
     Serial.println(header);
     //ABOVE IS FOR TESTING
