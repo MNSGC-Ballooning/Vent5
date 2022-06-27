@@ -4,12 +4,55 @@
 List of changes: 
 (add new lines to top of list whenever changes are made
 --------------------Format--------------------
-Date of Update: 
+Date of Update:
 Editor: 
-Major changes to code: 
-Emulated flight tested (y/n):
+Changes to code: 
+---> 
+Emulated flight tested (y/n): 
 Notes/Observations:
+---> 
 Future suggestions or plans for changes: 
+---> 
+----------------------------------------------
+Date of Update: 6/9/22 push #1
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+---> added avgAscentRateAfterVenting function to record average ascent rates at 30s intervals after each round of venting is finished
+---> finished the first prevent funciton for GL196
+---> made functions that calculate the estimated time needed for the 
+Emulated flight tested (y/n): N
+Notes/Observations:
+---> Not yet tested the aveAscentRateAfterVenting functions
+Future suggestions or plans for changes: 
+---> going to change the prevent and vent functions to the specifications of GL196
+----------------------------------------------
+Date of Update: 6/8/22 push #2
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+Tested previously pushed code with the emulator, prevent functions work, calling of termination function works
+Emulated flight tested (y/n): YES
+Notes/Observations:
+---> When testing with the emulator, whenever servo was not moving or commanded to move, the ascent rate was calculated correctally.
+This means when the vent was open during a preventing cycle the average ascent rate could be used possibly, exept for the calculation right before or 
+right after the servo moves. The plan for the next flight is to use the calculated ascent rate 30s, 60s, 90s, and 120s after venting is over to make decition of how
+long to vent the next time.
+Future suggestions or plans for changes: 
+---> going to change the prevent and vent functions to the specifications of GL196
+----------------------------------------------
+Date of Update: 6/8/22
+Editor: Ethan Thomson-Jewell
+Changes to code: 
+---> Moved jiggle if statements down into a jiggle function:   ### The jiggle function is currently commented out and is not in use ebcause it doesnt work yet ###
+Funciton is to jiggle the servo if the servo is not within a specified range (Currently +/- 40 degrees) ie it got stuck for some reason
+Keep in mind: The range of +/- 40 is because there is not currently a fix for the servoPosition discrepency issue. possibly this is caused by calibration issue 
+of output voltage when getting the servoPos values. This has not been resolved
+---> Added a Max and Min servo position variable that logs the max and min degrees that the servo can reach. these are found out using a testing loop in the beginning 
+of system update. this loop only triggers once. This was origionally going to be in systemSetup but I have not gotten that to work yet, not sure why.
+these variables are also logged to the SD card now
+--->Added the 'SERVOPOS' serial command that returns current servo position in degrees
+---> Moved the checking of flapperstate if statement to the beginnign of the 2s loop. before it required a GPS lock to correct an out of place flapper, now it wont
+Emulated flight tested (y/n): 
+Notes/Observations:
 ----------------------------------------------------
 Date of Update: 6/7/22
 Editor: Ethan Thompson-Jewell

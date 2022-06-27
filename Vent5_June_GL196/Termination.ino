@@ -20,7 +20,8 @@ if(emulationCheck == true){ // used only for emulation
 
   if (terminationStartTimeS + 20 < currTimeS) //20 second countdown until termination begins- this gives us some time to appropriately flash LEDs and make us aware of termination
   {
-    if (!Res1Burned)
+    
+    if (!Res1Burned) //burn waist line  resistor once 
     {
       if (!Res1on)
       {
@@ -36,7 +37,7 @@ if(emulationCheck == true){ // used only for emulation
         Res1Burned = true;
       }
     }
-    else if (!Res1Burned2)
+    else if (!Res1Burned2) //burn waist line  resistor second time
     {
       if (!Res1on)
       {
@@ -52,8 +53,8 @@ if(emulationCheck == true){ // used only for emulation
         Res1Burned2 = true;
       }
     }
-    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != DESCENT)) {
-      if (!Res1on)
+    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != DESCENT)) { //if its been 200 seconds since beginning to burn resistor 1 for a seconds time && not below 2000 && not in decent state
+      if (!Res1on) //burn resistor 1 a third time 
       {
         burnTime1StartS = currTimeS;
       }
@@ -68,7 +69,7 @@ if(emulationCheck == true){ // used only for emulation
       }
     }
     //Re2Burned and Res2Burned2 checks have been taken out to allow for ease of burning (This is an EMERGENCY cut- we aren't making it too difficult. Though they may be added back in)
-    else if (((currTimeS - timeBeforeFlight) > (240 * 60)) && (!Res2Burned)) //After 4min and above 2000ft, if the balloon has not reached descent speeds, the main line will be cut
+    else if (((currTimeS - timeBeforeFlight) > (240 * 60)) && (!Res2Burned)) 
     {
       if (!Res2on)
       {
@@ -85,7 +86,7 @@ if(emulationCheck == true){ // used only for emulation
         Res2Burned = true;
       }
     }
-    else if (((currTimeS - timeBeforeFlight) > 240 * 60) && (timesResistor2Burned < 4)) // old condition - (currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != DESCENT)
+    else if (((currTimeS - timeBeforeFlight) > 240 * 60) && (timesResistor2Burned < 4)) 
     {
 
 
