@@ -1,53 +1,89 @@
 // ************************************************ Function For Permanent Vent Opening + Both Pre-Venting Functions *************************************************
 // ****************************************** Also Includes Functions to Open, Close Vent, and Monitor the Servo's Position ******************************************
 
+
+
+void VentToFloat(unsigned long currTimeS, double avg_ascent_rate) {
+
+  if (!AlreadyStartedVentToFloat) {
+    AlreadyStartedVentToFloat = true;
+    Serial.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+    Serial.println("Starting The Vent to float");
+    Serial.println("Current Altitude: " + String(altFeet));
+    Serial.println("Current Time(currTimeS): " + String(currTimeS));
+    Serial.println("Time since 5kft: " + String(timeSince5kFeetS));
+    Serial.println("Time before flight: " + String(timeBeforeFlight));
+    Serial.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+    ventToFloatTime = currTimeS;
+    openVent();
+    ventReason = "Venting to float";
+  }
+  if (!AlreadyFinishedVentToFloat) {
+    if (currentState == FLOAT || avg_ascent_rate <= 0.25) {
+      AlreadyFinishedVentToFloat = true;
+      finishVentToFloat = currTimeS;
+      closeVent();
+      if (avg_ascent_rate <= 0.25) {
+        ventReason = "Finished venting avg ascent rate <= 0.25";
+      }
+      else {
+        ventReason = "Finished venting because we are in float state";
+      }
+      Serial.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+      Serial.println("Finished The Vent to float");
+      Serial.println("Length of Venting: " + String(finishVentToFloat - ventToFloatTime));
+      Serial.println("Current Avg Ascent Rate: " + String(avg_ascent_rate));
+      Serial.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+    }
+  }
+}//end of vent to float statement
+
+
+
+
+
 // ***********************************************************Big Vent******************************************************
 // ***********************************************************Big Vent******************************************************
 
 // Function for main Vent opening (Big vent opening to reach target ascent rate
 void bigVent(unsigned long currTimeS, double avg_ascent_rate) {
-  //no more venting function checks if venting is allowed. venting not allowed if average_ascent_rate is below 2.5
+  //no more venting function checks if venting is allowed. venting not allowed if average_ascent_rate is below 1
   isVentingAllowed();
 
   //if not already been inside this function then calculated estimate times required to vent and save them, then open the vent
   if (AlreadyStartedBigVent == false) {
     AlreadyStartedBigVent = true;
-
-    //calculated estimated times required for the big vent as calculated from prevent 1 and 2:
-    Serial.println("Before rate V1 saved as: " + String(beforeRatePV1));
-    Serial.println("avgAscentRateAt120PV1: " + String(avgAscentRateAt120PV1));
-    Serial.println("Estimating time from PV1");
-    estimatedTimeRequiredForBigVentPV1 = secondsToVent(beforeRatePV1, avgAscentRateAt120PV1, avg_ascent_rate, targetAscentRateAfterBigVent, (preventLengthS1 + preventLengthS2));
-
-    //calculated estimated time required to vent during big vent based on prevent 2, this is the one that we will use for actual vent
-    Serial.println("Before rate V2 saved as: " + String(beforeRatePV2));
-    Serial.println("avgAscentRateAt120PV2: " + String(avgAscentRateAt120PV2));
-    Serial.println("Estimating time from PV2");
-    estimatedTimeRequiredForBigVentPV2 = secondsToVent(beforeRatePV2, avgAscentRateAt120PV2, avg_ascent_rate, targetAscentRateAfterBigVent, preventLengthS2);
+    Serial.println("{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{");
     Serial.println("Starting BigVent");
     Serial.println("Current Altitude: " + String(altFeet));
     Serial.println("Current Time(currTimeS): " + String(currTimeS));
     Serial.println("Time since 5kft: " + String(timeSince5kFeetS));
     Serial.println("Time before flight: " + String(timeBeforeFlight));
     bigVentTimeS = currTimeS; //records the time that the big vent begun
+    beforeBigVentRate = avg_ascent_rate;
+    Serial.println("Current Avg Ascent Rate: " + String(beforeBigVentRate));
+    Serial.println("{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{");
     openVent();
-    ventReason = "Open for Big Vent";
+    ventReason = "Open for Big Vent at " + String(altFeet) + "ft";
   }
-  //if you have not gotten the command to stop and havent vented for estimate time +90s (the 90s is there for extra)
+
   if (AlreadyFinishedBigVent == false) {
-    if (avg_ascent_rate <= 3 || (bigVentTimeS + estimatedTimeRequiredForBigVentPV2 + 90 < currTimeS)) { //if ave ascent rate is below 3 or safety timer is reached, stop venting
+    if ((beforeBigVentRate - avg_ascent_rate) >= 1 || avg_ascent_rate <= targetAscentRate) {
       AlreadyFinishedBigVent = true; //stop venting now
       finishBigVentTimeS = currTimeS;
       closeVent();
-
-      if (avg_ascent_rate <= 3) {
-        ventReason = "Closed because Average Ascent Rate <= 3";
+      if (avg_ascent_rate >= targetAscentRate) {
+        ventReason = "Close for big vent b/c avg ascent rate dropped by 1";
       }
       else {
-        ventReason = "Closed because est. Time timer";
+        ventReason = "Close for big vent b/c target ascent rate reached";
       }
+      Serial.println("{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{");
       Serial.println("Finished Big Vent");
       Serial.println("Length of Venting: " + String(finishBigVentTimeS - bigVentTimeS));
+      Serial.println("Before Avg Ascent Rate: " + String(beforeBigVentRate));
+      Serial.println("Current Avg Ascent Rate: " + String(avg_ascent_rate));
+      Serial.println("{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{");
     }
   }
 
@@ -177,18 +213,18 @@ int secondsToVent(float beforeVentAvgAscentRate, float postVentAvgAscentRate, fl
   float ascentRateReductionPerSecond = (postVentAvgAscentRate - beforeVentAvgAscentRate) / float(lengthOfLastVent);
   Serial.println("ascent rate reduction per second :" + String(ascentRateReductionPerSecond));
 
-                 //finding seconds to vent in the next vent to reach required. this is staying an int and not rounding to air on the side of venting less than needed rather than more
+  //finding seconds to vent in the next vent to reach required. this is staying an int and not rounding to air on the side of venting less than needed rather than more
 
-                 int lengthOfNextVentS = (targetAscentRate - currentAvgAscentRate) / (ascentRateReductionPerSecond);
-                 Serial.println("lengthOfNextVentS :" + String(lengthOfNextVentS));
-                                return lengthOfNextVentS;
+  int lengthOfNextVentS = (targetAscentRate - currentAvgAscentRate) / (ascentRateReductionPerSecond);
+  Serial.println("lengthOfNextVentS :" + String(lengthOfNextVentS));
+  return lengthOfNextVentS;
 }
 
-               //isVentingAllowed() function. checks if the averave ascent rate is below 2.5 if true sets all venting variables to true
+//isVentingAllowed() function. checks if the averave ascent rate is below 1 if true sets all venting variables to true
 void isVentingAllowed() {
-  if (avg_ascent_rate <= 2.5) {
-    Serial.println("No more Venting Allowed because ascent Rate is to low ( <2.5 )");
-    ventReason = "No Venting, aveAR < 2.5";
+  if (avg_ascent_rate <= 1) {
+    Serial.println("No more Venting Allowed because ascent Rate is to low ( <=1 )");
+    ventReason = "No Venting, aveAR <= 1";
 
     AlreadyStartedPreVenting1 = true;
     AlreadyFinishedPreVenting1 = true;

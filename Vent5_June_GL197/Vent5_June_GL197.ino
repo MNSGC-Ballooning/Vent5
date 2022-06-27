@@ -40,7 +40,7 @@ UbloxGPS gps = UbloxGPS(&ubloxSerial); //creates object for GPS tracking
 
 // SD Card
 #define chipSelect BUILTIN_SDCARD // "BUILDIN_SDCARD" indicates that you're using the onboard Teensy 3.5 SD Logger
-String header = "Flight Time(s),Time (s),Time (millis),GPS Hr,GPS Min,GPS Sec,Battery Temperature (F),Pressure (psi),Pressure Altitude(feet),Suggested Bounds State,Current Bounds State,Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason,Est. Time Req BV PV1,Est. Time Req BV PV2";
+String header = "Flight Time(s),Time (s),Time (millis),GPS Hr,GPS Min,GPS Sec,Battery Temperature (F),Pressure (psi),Pressure Altitude(feet),Suggested Bounds State,Current Bounds State,Lat,Long,Altitude (feet),# of Satellites,Valid Ascent Rate (m/s),Avg. Ascent Rate (m/s),GPS Ascent Rate,Pressure Ascent Rate,Heater State,Flapper State,Measured Servo Position (degrees),Commanded Servo Position,Open Flapper Servo Position,Closed Flapper Servo Position,Cutter State,Suggested State,Current State,Vent Reason";
 File datalog;
 File datalogIMU;
 char filename[] = "SDCARD00.csv"; // Default name of the SD log
@@ -76,16 +76,19 @@ bool ventSent = false;  //bool that if true the vent has communicated with emula
 
 unsigned long prevTime = 0; // Typical for control flow in most MURI ballooning lab codes, this is called at the end of every 2-second cycle
 String message = ""; // the variable that is logged to the SD card every cycle
+String radioData = "";
 unsigned long interval = 2000; // units of milliseconds, defines how much time is between each cycle of the main loop (currently 2 seconds before each loop + datalog)
 int currTimeS = 0; // the current time in seconds, usually defined as millis()/1000;
 int timeBeforeFlight = 1000000;
 int flightTime = 0; 
+double targetAscentRate;
 double beforeRatePV1;
 double beforeRatePV2;// before the ascent rate is reduced by venting
+double beforeBigVentRate;
 double ascent_rate = 5; // ascent rate in meters per second (m/s), set it to 5 for the first 10 datapoints (after the flight is detected to "begin" at 5000 feet) so it doesn't prematurely set off the cutter
 double gps_ascent_rate = 5;
 double press_ascent_rate = 5;
-double last_ten_ascent_rates[10] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5}; // last 10 ascent rates in meters per second (m/s), set it to 5 for the first 10 datapoints (after the flight is detected to "begin" at 5000 feet) so it doesn't prematurely set off the cutter
+double last_twenty_ascent_rates[20] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}; // last 20 ascent rates in meters per second (m/s), set it to 5 for the first 20 datapoints (after the flight is detected to "begin" at 5000 feet) so it doesn't prematurely set off the cutter
 double avg_ascent_rate; // this is the average of the last 10 ascent rates (see above); this is the one that's used in decisions since individual ascent rates can be noisy; avoids extraneous data points
 unsigned long prev_time2 = 0; // similar to prev_time, EXCEPT that prev_time2 is the last time that the GPS got a lock, this is so that the ascent rate can be calculated properly
 double prev_Press_Altitude;
@@ -102,6 +105,8 @@ bool AlreadyFinishedPreventing2 = false; // same function as pre-venting 1's boo
 unsigned long timeAtBigVent = 10000000000; // The time (in seconds) at which you reach your permanent venting (close to 120,000 feet)
 bool AlreadyStartedBigVent = false; // same function as the pre-venting booleans
 bool AlreadyFinishedBigVent = false; // same function as the pre-venting booleans
+bool AlreadyStartedVentToFloat= false;
+bool AlreadyFinishedVentToFloat = false;
 String cutterState = "OFF"; // this tells us the state of the cutters (on or off?) and the reason why they terminated/cut or tried to cut; this is logged to the SD card every cycle
 String flapperState; // this variable tells you whether the flapper supposed to be open or closed. this is logged to the SD card every cycle.
 bool NinetyKFeetpAltReached = false; // don't think that this variable is used anymore
@@ -130,12 +135,16 @@ int gpsHR, gpsMIN, gpsSEC; // GPS variables for time stamp
 int preVentingTimeS1; //Acts as the count for the first pre-vent
 int preVentingTimeS2; //Acts as the count for the second pre-vent
 int bigVentTimeS;
+int ventToFloatTime;
+int commandTime;
 int finishventTimeS1 = 10000000; // saves the time when the first pre-vent finished
 int finishventTimeS2 = 10000000; // saves the time when the second pre-vent finished
 int finishBigVentTimeS = 1000000;
+int finishVentToFloat = 1000000;
 //MIGHT NOT NEED BELOW
 int roundsOfVenting1 = 0;
 int roundsOfVenting2 = 0;
+int roundsOfBigVent = 0;
 bool moreVent = true; // for when venting has reduced the ascent rate for more than 50%
 bool reachedDesiredRateReduction1 = false;
 bool reachedDesiredRateReduction2 = false;
@@ -158,7 +167,9 @@ int terminationStartTimeS; //20 second timer to display LED patterns before term
 bool terminationBegun = false; //Once termination is called, this is set to true to start the termination timer
 int descentTimer;//Timer for the rare case that the balloon is in descent before the final vent
 bool descentTimerStarted = false; //boolean used to set the descentTimer
-int floatTimer; //Timer for the rare case that the balloon is in float before the final vent
+int backupFloatTimer = 1000000;
+bool backupFloatTimerStarted = false;
+int floatTimer = 1000000; //Timer for the rare case that the balloon is in float before the final vent
 bool floatTimerStarted = false; //boolean used to set the floatTimer
 int jiggleTimer; //Timer to help pace the servo / tell whether the servo needs to be "jiggled" if it's out of place
 bool jiggleTimerStarted = false; //boolean used to set the jiggleTimer
@@ -171,6 +182,10 @@ double pressureAltFeet; // pressure altitude in feet
 float pressureBoundary1;
 float pressureBoundary2;
 float pressureBoundary3;
+
+//////////////////////////////////////Radio Variables////////////////////////////////////////////
+bool jigglingClose = false;
+bool jigglingOpen = false;
 
 ///////////////////////**********Added state_machine variables********///////////////////////////
 ///////////////////////**********Added state_machine variables********///////////////////////////
@@ -239,25 +254,24 @@ uint8_t cutReasonA = 0x22, cutReasonB = 0x22;
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 
-#define EASTERN_BOUNDARY -93.3 // Clarck's Grove
-#define WESTERN_BOUNDARY -94.3 // Biscay
-#define SOUTHERN_BOUNDARY 43.94 // Iowa border
-#define NORTHERN_BOUNDARY 44.85 // Waconia
+#define EASTERN_BOUNDARY -92.75 // Vernon
+#define WESTERN_BOUNDARY -93.50 // Otisco
+#define SOUTHERN_BOUNDARY 43.50 // Iowa stateline
+#define NORTHERN_BOUNDARY 44.30 // Faribault
 
 bool emulationCheck = false; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
-float desieredRateReduction = 10; // in precentange (%)
-int preventLengthS1 = 30; // in seconds         CURRENTLY SET FOR GL196
-int preventLengthS2 = 30; // in seconds
-int preVentAlt1 = 70000; // in feet(ft)         CURRENTLY SET FOR GL196
-int preVentAlt2 = 80000; // in feet(ft)         CURRENTLY SET FOR GL196
-int bigVentAlt = 90000; //in ft
-int preVentTimeS1 = 80 * 60;
-int preVentTimeS2 ; //NOT CURRENTLY SET: rn this is hard coded for 15 min after prevent1 finished Line ~338 in system update
-int terminateAlt = 95000;
+float desieredRateReduction = 10; //this is the how much you would like to reduce the ascent rate by in precentange (%)
+int preventLengthS1 = 30; // in seconds         NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int preventLengthS2 = 30; // in seconds         NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int preVentAlt1 = 70000; // in feet(ft)         NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int preVentAlt2 = 80000; // in feet(ft)         NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int bigVentAlt = 90000; //in ft                 NOT CURRENTLY SET FOR GL197: no the big vent function is used for multiple venting so this is hard coded
+int preVentTimeS1 = 80 * 60;//NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int preVentTimeS2 ; //NOT CURRENTLY SET FOR GL197: no preventing on this flight
+int terminateAlt = 90000;
 int terminateTimeS = 240 * 60; //this is time to terminate flight "master timer" usually set to 4 hours
 
-float targetAscentRateAfterBigVent = 3; //target for ascent rate in m/s
-
+float targetAscentRateAfterBigVent = 3; //NOT CURRENTLY SET FOR GL197: the target ascent rate changes everytime big vent is called
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 //CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT

@@ -14,6 +14,16 @@ Notes/Observations:
 Future suggestions or plans for changes: 
 ---> 
 ----------------------------------------------
+Date of Update: 6/27/22
+Editor: Seyon, ETJ uploading
+Changes to code: changed code for GL197 added radio functionality
+---> 
+Emulated flight tested (y/n): ?
+Notes/Observations:
+---> 
+Future suggestions or plans for changes: 
+---> 
+----------------------------------------------
 Date of Update: 6/9/22 push #1
 Editor: Ethan Thomson-Jewell
 Changes to code: 

@@ -18,7 +18,7 @@ void systemSetup()
     heaterSetup();
 
   //radio Setup
-    //radioSetup();
+    radioSetup();
 
   // Pressure Sensor Setup
     while(!baro.begin())
