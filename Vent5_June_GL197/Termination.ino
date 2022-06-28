@@ -53,7 +53,7 @@ if(emulationCheck == true){ // used only for emulation
         Res1Burned2 = true;
       }
     }
-    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != DESCENT)) { //if its been 200 seconds since beginning to burn resistor 1 for a seconds time && not below 2000 && not in decent state
+    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != FAST_DESCENT)) { //if its been 200 seconds since beginning to burn resistor 1 for a seconds time && not below 2000 && not in decent state
       if (!Res1on) //burn resistor 1 a third time 
       {
         burnTime1StartS = currTimeS;

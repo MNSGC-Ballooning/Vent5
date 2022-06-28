@@ -14,6 +14,19 @@ Notes/Observations:
 Future suggestions or plans for changes: 
 ---> 
 ----------------------------------------------
+Date of Update:6/28/22
+Editor: Ethan Thompson-Jewell
+Changes to code: 
+---> Added a 'Fast_decent' variable that lets the waist line 
+try and cut a 3rd time if not in 'parachute descent' 
+---> Changed the isVentingAllowed() function to close then vent 
+when called and ascent_rate is < 1m/s
+Emulated flight tested (y/n): 
+Notes/Observations:
+---> 
+Future suggestions or plans for changes: 
+---> 
+----------------------------------------------
 Date of Update: 6/27/22
 Editor: Seyon, ETJ uploading
 Changes to code: changed code for GL197 added radio functionality

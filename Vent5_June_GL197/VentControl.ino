@@ -102,7 +102,7 @@ void bigVent(unsigned long currTimeS, double avg_ascent_rate) {
 // Function to (hopefully) increase our balloon's altitude ceiling, so that we don't prematurely burst! Commented pieces of logic aren't entirely "fleshed-out"
 void PreVenting1(unsigned long currTimeS, double avg_ascent_rate) //Two pieces of logic are included here; one is commented out. The first is a timed vent opening, the 2nd is based on ascent rate.
 {
-  isVentingAllowed(); //checks if ascent rate is below 2.5
+  isVentingAllowed(); //checks if ascent rate is below 1m/s
   if (!AlreadyStartedPreVenting1) //if havent already started preventing
   {
     AlreadyStartedPreVenting1 = true;
@@ -224,6 +224,7 @@ int secondsToVent(float beforeVentAvgAscentRate, float postVentAvgAscentRate, fl
 void isVentingAllowed() {
   if (avg_ascent_rate <= 1) {
     Serial.println("No more Venting Allowed because ascent Rate is to low ( <=1 )");
+    closeVent(); //closing the vent in order to preserve the ascent rate
     ventReason = "No Venting, aveAR <= 1";
 
     AlreadyStartedPreVenting1 = true;

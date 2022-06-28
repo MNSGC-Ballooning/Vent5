@@ -277,7 +277,8 @@ void systemUpdate()
         cutterState = "Released because of backup flight timer";
       }
 
-      if (currentState == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries
+      //this currently will never be called as of GL196 edit because currentState will never be out of bounds
+      if (currentState == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries 
       {
         terminate();
         cutterState = "Realeased because balloon crossed flight boundaries";

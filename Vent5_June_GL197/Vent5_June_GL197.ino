@@ -3,15 +3,6 @@
 // state_machine by Nathan Pharis, Steele Mitchell
 // GPS Emulation by Benjamin Stevens
 
-//=============================================Edit to Vent 6-7-22 by Ethan Thompson-Jewell  =======================================
-
-//Major changes include:
-/*
-   Read the README txt file
-   the jiggle function is currently not being used because it doesnt work yet. 
-*/
-
-//==========================================================================================================================================
 
 // Libraries
 // SD Card
@@ -198,8 +189,9 @@ bool jigglingOpen = false;
 #define FLOAT 0x03
 #define SLOW_DESCENT 0x04
 #define DESCENT 0x05
-#define TEMP_FAILURE 0x06
-#define BATTERY_FAILURE 0x07
+#define FAST_DESCENT 0x06
+//#define TEMP_FAILURE 0x06  //we are not currently using temp failure
+//#define BATTERY_FAILURE 0x07  //we are currently not using battery failure
 #define PAST_TIMER 0x09
 #define ERROR_STATE 0x10
 
@@ -211,7 +203,7 @@ String stateReturn;
 uint8_t stateSuggest; // state recommended by control
 uint8_t currentState = INITIALIZATION; // state we are in, starts as initialization
 uint8_t SDcounter = 0;
-uint8_t ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0;
+uint8_t ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0, fastDescentCounter = 0;
 uint8_t tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0;
 uint8_t boundsSuggest = IN_BOUNDS;
 uint8_t boundsCurrent = IN_BOUNDS;
