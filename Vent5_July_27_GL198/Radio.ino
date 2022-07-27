@@ -23,49 +23,39 @@ void radioSetup() {
 }
 
 void updateRadio() {
-  if (altFeet < 50000 || (jigglingClose == true) || (jigglingOpen == true)) {
+  if (altFeet < 50000 || (jigglingClose == true) || (jigglingOpen == true)) { // limits radio comms to under 50,000 ft 
     if (xbeeSerial.available() > 0 || (jigglingClose == true) || (jigglingOpen == true)) {
-      comm = xbeeSerial.readString();
+      comm = xbeeSerial.readString(); // receives the radio comms and collects it in the string comm
       Serial.println(comm);
       xbeeSerial.flush();
       if (comm == "JIGGLE" || (jigglingClose == true) || (jigglingOpen == true)) {
         Serial.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
         Serial.println("Jiggle Message received");
-        Serial.println("altFeet: " + String(altFeet));
-        Serial.println("jigglingOpen: " + String(jigglingOpen));
-        Serial.println("jigglingClose: " + String(jigglingClose));
         if ((flapperState.equals("Closed")) || (jigglingClose == true)) {
           Serial.println("We are about to do close jiggling");
+          
+          // opens the vent, waits one cycle, then closes the vent
           if (jigglingClose == false) {
             Serial.println("Starting the close jiggling");
-            Serial.println("jigglingOpen: " + String(jigglingOpen));
-            Serial.println("jigglingClose: " + String(jigglingClose));
             openVent();
             jigglingClose = true;
             commandTime = currTimeS;
           }
           if ((commandTime + 2 < currTimeS) && (jigglingClose == true)) {
             Serial.println("Finishing the close jiggling");
-            Serial.println("jigglingOpen: " + String(jigglingOpen));
-            Serial.println("jigglingClose: " + String(jigglingClose));
             closeVent();
             jigglingClose = false;
           }
         }
         else {
-          Serial.println("We are about to do open jiggling");
           if (jigglingOpen == false) {
             Serial.println("Starting the open jiggling");
-            Serial.println("jigglingOpen: " + String(jigglingOpen));
-            Serial.println("jigglingClose: " + String(jigglingClose));
             closeVent();
             jigglingOpen = true;
             commandTime = currTimeS;
           }
           if ((commandTime + 2 < currTimeS) && (jigglingOpen == true)) {
             Serial.println("Finishing the open jiggling");
-            Serial.println("jigglingOpen: " + String(jigglingOpen));
-            Serial.println("jigglingClose: " + String(jigglingClose));
             closeVent();
             jigglingOpen = false;
           }

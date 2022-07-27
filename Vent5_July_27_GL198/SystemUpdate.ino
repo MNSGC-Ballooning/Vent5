@@ -3,7 +3,6 @@
 // System data collection and state machine
 void systemUpdate()
 {
-
   // Flash the LED appropriately
   led(); // flash the LED in the desired pattern
 
@@ -28,39 +27,16 @@ void systemUpdate()
   // New GPS Update
   gps.update(); // refresh the GPS so it gives you new data
 
-  //This while statement check to see the min and max positions of the servo in open and closed positions. these variables are used later for jiggle logic
-  while (servoSetupFinished == false) {
-    ventServo.write(openServo); //opening vent fully
-    delay(1000);
-    servoMinPos = servoPos(); //minimum servo position because 0 is open
-    ventServo.write(closeServo);
-    delay(1000);
-    servoMaxPos = servoPos(); //minimum servo position because 0 is open
-    if (servoMaxPos > servoMinPos && servoMaxPos == servoPos()) { //checking that the servoMaxPos and servoMinPos have been set correctally
-      ventServo.write(openServo); //opening vent fully
-      delay(1000);
-      if (servoMinPos == servoPos()) { //if this second condition is met
-        Serial.println("Servo min/max successful");
-        Serial.println("Found servo max: " + String(servoMaxPos) + "    found servo min: " + String(servoMinPos));
-        servoSetupFinished = true;
-      }
-    } else {
-      Serial.println("Servo min/max failed, looping again");
-      Serial.println("Found servo max: " + String(servoMaxPos) + "    found servo min: " + String(servoMinPos));
-    }
-    ventServo.write(closeServo);
-    delay(1000);
-  }
-
 
   // obtain the current time (in milliseconds)
   unsigned long currTime = millis();
 
   //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ Beginning the every-2s cycle   \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 
+
+  // Serial.print("q3456yuj9hbvcsanlrty[jmhpoknv dsmwerltphj[knm iM OUTSIDE OF THE LOOP dsfghj,.iojkdghlnmb lvkcjxbzmfg,h;");
   if (currTime - prevTime > interval) // Interval is currently 2000 ms (or 2 seconds) as defined - this is the main loop/cycle
   {
-
     //\/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ updating timers //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ //\/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
     prevTime = millis(); //setting prevTime to the current time --> this is for all functions that need every 2 seconds. not only ascent rate
     currTimeS = currTime / 1000; // obtain the current time in seconds (convert from milliseconds to seconds)
@@ -167,18 +143,6 @@ void systemUpdate()
     message += GPSdata; // add that GPS data string to the overall SD log message
 
 
-    // **********************DECLARE WHETHER THE GPS HAS HAD A RECENT LOCK OR NOT (with "recent" bring defined as 5 minutes--300 seconds--here)*****************************************
-    if ((millis() - prev_time2) / 1000 > 300) // if more than 300 seconds (5 minutes) have passed since fresh GPS hits, declare that the GPS has lost its lock, for backup logic purposes
-    {
-      GPS_LOCKED == false;
-
-    }
-    else
-    {
-      GPS_LOCKED == true;
-
-    }
-
     if (gps.getAlt_feet() == 0) {
       GPS_LOCK = false;
       Serial.println("GPS LOCKED IS FALSE FALSE FALSE");
@@ -188,8 +152,6 @@ void systemUpdate()
       Serial.println("GPS LOCKED IS TRUE TRUE TRUE");
     }
 
-
-    Serial.println(" BEFORE STATE DETERMINATION ===> commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
     // *****************State Determination ("Worst-case" to "Best Case" Order of Operations)***************
@@ -203,16 +165,14 @@ void systemUpdate()
       if (altFeet > 5000 && fivekFeetReached == false) // 5000 feet is the threshold to make sure that it doesn't prematurely vent or terminate when it's on the ground
       { // basically this if statement is only called the first moment after you cross 5000 feet for the first time and
         // it sets the flight status as having begun which starts the backup flight timer and allows you to start running through termination and vent logic.
-        // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_ten_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
+        // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_twenty_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
         fivekFeetReached = true;
         timeSince5kFeetS = currTimeS;
         ascent_rate = 5;
         for (int i = 0; i < 20; i++) {
           last_twenty_ascent_rates[i] = 5;
         }
-        //        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
-        //        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
-        avg_ascent_rate = 5;
+       avg_ascent_rate = 5;
       }
     }
     else if (GPS_LOCK == false)
@@ -220,16 +180,14 @@ void systemUpdate()
       if (pressureAltFeet > 5000 && fivekFeetReached == false) // 5000 feet is the threshold to make sure that it doesn't prematurely vent or terminate when it's on the ground
       { // basically this if statement is only called the first moment after you cross 5000 feet for the first time and
         // it sets the flight status as having begun which starts the backup flight timer and allows you to start running through termination and vent logic.
-        // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_ten_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
+        // This function sets the initial values of "ascent_rate," "avg_ascent_rate," and "last_twenty_ascent_rates" to 5 m/s so that it avoids accidentally tripping the termination logic early
         timeSince5kFeetS = currTimeS;
         fivekFeetReached = true;
         ascent_rate = 5;
         for (int i = 0; i < 20; i++) {
           last_twenty_ascent_rates[i] = 5;
         }
-        //        last_ten_ascent_rates[1] = 5; last_ten_ascent_rates[2] = 5; last_ten_ascent_rates[3] = 5; last_ten_ascent_rates[4] = 5; last_ten_ascent_rates[5] = 5;
-        //        last_ten_ascent_rates[6] = 5; last_ten_ascent_rates[7] = 5; last_ten_ascent_rates[8] = 5; last_ten_ascent_rates[9] = 5; last_ten_ascent_rates[0] = 5;
-        avg_ascent_rate = 5;
+       avg_ascent_rate = 5;
       }
     }
     // to be added: to use the pressure drop when flight begins to estiblish an more accurate flight timer
@@ -277,7 +235,8 @@ void systemUpdate()
         cutterState = "Released because of backup flight timer";
       }
 
-      if (currentState == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries
+      //this currently will never be called as of GL196 edit because currentState will never be out of bounds
+      if (boundsCurrent == OUT_OF_BOUNDS ) //Check to terminate when the balloon has crossed the coordinate boundaries
       {
         terminate();
         cutterState = "Realeased because balloon crossed flight boundaries";
@@ -324,7 +283,7 @@ void systemUpdate()
         }
       }
 
-      if (avg_ascent_rate <= 0.25 && !backupFloatTimerStarted) {
+      if (avg_ascent_rate <= 0.4 && !backupFloatTimerStarted) {
         backupFloatTimerStarted = true;
         backupFloatTimer = currTimeS;
       }
@@ -346,8 +305,6 @@ void systemUpdate()
 
     // ****INSERT ALTITUE GPS-BASED AND TIMER-BASED VENTING DECISIONS HERE****
 
-    //int est_altitude = lastAltFeet + avg_ascent_rate*(millis() - prev_time2)/1000; // (For the else statement, if the GPS hasn't had a good lock)
-
     // Regular State Machine
     if (GPS_LOCK == true) // if the GPS has had a hit in the last minute or so, assume that its working (this if statement is the primary (GPS-based) state machine logic
     {
@@ -356,65 +313,29 @@ void systemUpdate()
       Control();
       suggestedState = State();
       //////////////////////////////////////////////////////////////////// Flight Procedure //////////////////////////////////////////////////////////////////////////////
-      if (altFeet > 50000 && altFeet < 60000) //GL197 drafting
-      {
-        if (roundsOfBigVent == 0) {
-          roundsOfBigVent++;
-        }
-        targetAscentRate = 4;
-        bigVent(currTimeS, avg_ascent_rate);
 
+      if (altFeet > preVentAlt1) {
+        PreVenting1(currTimeS, avg_ascent_rate);
       }
 
-      if (altFeet > 60000 && altFeet < 70000) {
-        if (roundsOfBigVent == 1) {
-          roundsOfBigVent++;
-          AlreadyStartedBigVent = false;
-          AlreadyFinishedBigVent = false;
-        }
-        targetAscentRate = 3;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-
-      if (altFeet > 70000 && altFeet < 75000) {
-        if (roundsOfBigVent == 2) {
-          roundsOfBigVent++;
-          AlreadyStartedBigVent = false;
-          AlreadyFinishedBigVent = false;
-        }
-        targetAscentRate = 2;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-
-      if (altFeet > 75000 && altFeet < 80000) {
-        if (roundsOfBigVent == 3) {
-          roundsOfBigVent++;
-          AlreadyStartedBigVent = false;
-          AlreadyFinishedBigVent = false;
-        }
-        targetAscentRate = 1;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-      if (altFeet > 80000) {
+      if (altFeet > 70000) {
         VentToFloat(currTimeS, avg_ascent_rate);
       }
       if (altFeet > terminateAlt) {
-        terminate();
         if (!terminationBegun) {
           cutterState = "Released because balloon is above or at termination altitude (90,000ft)";
         }
-      }
-      if (floatTimer + 600 < currTimeS) {
+        Res1Burned = false;
+        Res2Burned = false;
         terminate();
-        if (!terminationBegun) {
-          cutterState = "Released because balloon entered float state ten minutes ago";
-        }
       }
       if (backupFloatTimer + 1200 < currTimeS) {
-        terminate();
         if (!terminationBegun) {
-          cutterState = "Released because balloon the avg ascent rate reached 0.25 m/s 20 mins ago";
+          cutterState = "Released because balloon the avg ascent rate reached 0.4 m/s 20 mins ago";
         }
+        Res1Burned = false;
+        Res2Burned = false;
+        terminate();
       }
 
       //////////////////////////////////////////////////////////////////// Flight Procedure //////////////////////////////////////////////////////////////////////////////
@@ -427,57 +348,26 @@ void systemUpdate()
       Control();
       suggestedState = State();
 
-      //This logic is a TIMER-BASED backup for the GPS. At 60k feet the pressure sensor becomes unreliable
-      if (FlightHasBegun == true)
-      {
-        System_Time_Min = (currTimeS - timeSince5kFeetS) / 60; // Time since the balloon crossed 5k feet // Note: Old Logic; Note: this logic relies on the GPS working around ~2500 feet in order to work properly, but not throughout the entire flight
-
-
-
-        //        Serial.println("System_Time_Min is: ");
-        //        Serial.println(String(System_Time_Min));
-        //        if(System_Time_Min > 110) // Vent will probably slow down, but it depends on
-        //        {
-        //          oneTimeOpen(currTimeS,lon); // Permanent vent opening
-        //          Serial.println("100k feet timer - based termination");
-        //      }
-
-      }
-      if (pressureAltFeet > 50000 && pressureAltFeet < 60000) //GL197 drafting
-      {
-        targetAscentRate = 4;
-        bigVent(currTimeS, avg_ascent_rate);
-
+      if (pressureAltFeet > preVentAlt1) {
+        PreVenting1(currTimeS, avg_ascent_rate);
       }
 
-      if (pressureAltFeet > 60000 && pressureAltFeet < 70000) {
-        AlreadyStartedBigVent = false;
-        AlreadyFinishedBigVent = false;
-        targetAscentRate = 3;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-
-      if (pressureAltFeet > 70000 && pressureAltFeet < 75000) {
-        AlreadyStartedBigVent = false;
-        AlreadyFinishedBigVent = false;
-        targetAscentRate = 2;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-
-      if (pressureAltFeet > 75000 && pressureAltFeet < 80000) {
-        AlreadyStartedBigVent = false;
-        AlreadyFinishedBigVent = false;
-        targetAscentRate = 1;
-        bigVent(currTimeS, avg_ascent_rate);
-      }
-      if (pressureAltFeet > 80000) {
+      if (pressureAltFeet > 70000) {
         VentToFloat(currTimeS, avg_ascent_rate);
       }
-      if ((pressureAltFeet > terminateAlt) || (floatTimer + 600 < currTimeS) || (backupFloatTimer + 1200 < currTimeS)) {
+      if (pressureAltFeet > terminateAlt) {
+        if (!terminationBegun) {
+          cutterState = "Released because balloon is above or at termination altitude (90,000ft)";
+        }
+        terminate();
+      }
+      if (backupFloatTimer + (20 * 60) < currTimeS) {
+        if (!terminationBegun) {
+          cutterState = "Released because balloon the avg ascent rate reached 0.4 m/s 20 mins ago";
+        }
         terminate();
       }
     }
-
     // *Note that all of the "Serial.println()"'s that are here are simply to tell someone what's going on if they are plugged into the Teensy and watching the serial monitor
 
 
@@ -489,17 +379,7 @@ void systemUpdate()
     //**************************************************************VENTING LOGIC ENDS**************************************************************
 
     // BELOW IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
-    if (serialcommand == "SERVOPOS")
-    {
-      Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
-      serialcommand = "";
-    }
-    if (serialcommand == "GOOF")
-    {
-      Serial.println("Testing vent 'jiggle'");
-      ventServo.write(80);
-      serialcommand = "";
-    }
+
     if (serialcommand == "OPEN")
     {
       Serial.println("Testing");
@@ -573,7 +453,7 @@ void systemUpdate()
     // ABOVE IS FOR USE WITH THE SERIAL MONITOR ONLY**********************NOT FLIGHT-CRITICAL**********************
 
     // Finally, add the last few variables to the message string, print out the data/message to the serial monitor, and log the message string to the SD Card
-    radioData = heaterStatus + ", " + flapperState + ", " + String(servoPos()) + ", " + String(commandedServoPosition) + ", " + String(servoMinPos) + ", " + String(servoMaxPos) + ", " + String(cutterState) + ", " + stateSuggest + ", " + currentState + ", " + ventReason;
+    radioData = heaterStatus + ", " + flapperState + ", " + String(servoPos()) + ", " + String(cutterState) + ", " + stateSuggest + ", " + currentState + ", " + ventReason;
     message += ", " + radioData;
     //BELOW IS FOR TESTING
     Serial.println(header);

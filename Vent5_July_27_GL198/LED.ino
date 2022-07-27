@@ -2,7 +2,7 @@
 
 // ********************** Main LED Function ***********************
 
-// Flash the LED in the appropriate pattern, to indicate the state of the vent to any upward facing cameras below
+// Flash the LED in the appropriate pattern, to indicate the state of the vent to any upward facing cameras below. Key is in the google drive
 void led()
 {
   if(gps.getAlt_feet() == 0){//This happens when the GPS is just getting a read or isn't working. 2 LEDs flash in a cycle, with 1 turning off.

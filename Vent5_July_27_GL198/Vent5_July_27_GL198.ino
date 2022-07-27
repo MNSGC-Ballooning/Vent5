@@ -1,17 +1,8 @@
 // By Jacob Meyer
-// Edited by Benjamin Brynestad, Panos Delton, Shea Larson
+// Edited by Benjamin Brynestad, Panos Delton, Shea Larson, Ethan Thompson-Jewell, Seyon Wallo
 // state_machine by Nathan Pharis, Steele Mitchell
 // GPS Emulation by Benjamin Stevens
 
-//=============================================Edit to Vent 6-7-22 by Ethan Thompson-Jewell  =======================================
-
-//Major changes include:
-/*
-   Read the README txt file
-   the jiggle function is currently not being used because it doesnt work yet. 
-*/
-
-//==========================================================================================================================================
 
 // Libraries
 // SD Card
@@ -54,16 +45,38 @@ unsigned int serialByte;
 float servoFeedback; // instantaneous servo position value
 int openServo = 0; // The measured servo position for when the vent is fully open
 int closeServo = 180; // The measured servo position for when the vent is fully closed    THIS MUST BE CHECKED FOR EACH NEW AVIONICS/MECHANISIM PACKAGE
-int commandedServoPosition = -999; //commmanded Servo Position is a variable logging the instructions given to the servo as to what degree it shoudl close to.
-bool servoSetupFinished = false; //this is the bool that tells when servo max and min degree positions have been catalogged
-int servoMaxPos = -999; //variables that logs the max degree that the current attached servo is able to turn. this is assumed the flapper is closed when servo in this position
-int servoMinPos = -999; //variables that logs the min degree that the current attached servo is able to turn. this is assumed the flapper is open when servo in this position
 
 ////////////////////////**********End Of Global Variables*********///////////////////////////
 ////////////////////////**********End Of Global Variables*********///////////////////////////
 ////////////////////////**********End Of Global Variables*********///////////////////////////
 ////////////////////////**********End Of Global Variables*********///////////////////////////
 ////////////////////////**********End Of Global Variables*********///////////////////////////
+
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
+
+#define EASTERN_BOUNDARY -108.9 // Broadview
+#define WESTERN_BOUNDARY -110.25 // Springdale
+#define SOUTHERN_BOUNDARY 45.70 // Springdale
+#define NORTHERN_BOUNDARY 46.10 // Broadview
+
+bool emulationCheck = false; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
+float desieredRateReduction = 10; //this is the how much you would like to reduce the ascent rate by in precentange (%)
+int preventLengthS1 = 120; // in seconds        only prevent in flight for 2 mins
+int preventLengthS2 = 30; // in seconds         NOT CURRENTLY SET FOR Bozeman: only one preventing on this flight
+int preVentAlt1 = 60000; // in feet(ft)         only prevent in flight at 60k feet
+int preVentAlt2 = 80000; // in feet(ft)         NOT CURRENTLY SET FOR Bozeman: only one preventing on this flight
+int bigVentAlt = 90000; //in ft                 NOT CURRENTLY SET FOR Bozeman: no big venting on this flight
+int preVentTimeS1 = 80 * 60;//NOT CURRENTLY SET FOR Bozeman: the backup is not timed but based on pressure altitude
+int preVentTimeS2 ; //NOT CURRENTLY SET FOR Bozeman: the backup is not timed but based on pressure altitude
+int terminateAlt = 85000;
+int terminateTimeS = 240 * 60; //this is time to terminate flight "master timer" usually set to 4 hours
+
+float targetAscentRateAfterBigVent = 3; //Not currently used
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
+//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 
 ///////////////////////**********Timer and misc. variables********///////////////////////////
 ///////////////////////**********Timer and misc. variables********///////////////////////////
@@ -109,7 +122,6 @@ bool AlreadyStartedVentToFloat= false;
 bool AlreadyFinishedVentToFloat = false;
 String cutterState = "OFF"; // this tells us the state of the cutters (on or off?) and the reason why they terminated/cut or tried to cut; this is logged to the SD card every cycle
 String flapperState; // this variable tells you whether the flapper supposed to be open or closed. this is logged to the SD card every cycle.
-bool NinetyKFeetpAltReached = false; // don't think that this variable is used anymore
 bool GPS_LOCK = false; // is the GPS locked? this is very important. You won't get the regular LED flashing pattern if the GPS is unplugged or isn't able to be set to airborne mode.
 bool FlightHasBegun = false;
 bool fivekFeetReached = false;// this is triggered once the balloon/vent crossed 5000 feet altitude to prevent the balloon from prematurely cutting/terminating/venting below 5000 feet; no logic executed before it crosses 5000 feet.
@@ -123,13 +135,8 @@ bool Res1Burned3 = false;
 int timesResistor2Burned = 0;
 int burnTime1StartS; // when resistor 1 started burning for the current interval so that you can set the 7 and 30 second timers
 int burnTime2StartS; // when resistor 2 started burning for the current interval so that you can set the 7 and 30 second timers
-bool NeedToRecalculate = false; // defunct variable (used in the first "80/90/100k" venting test flights)
 bool Res1on = false; // tells you whether resistor 1 is currently burning or not
 bool Res2on = false; // tells you whether resistor 2 is currently burning or not
-bool opened_vent = false; // might be an old/defunct variable, no longer used
-int openingTime_s = 100 * 60; // old/defunct variable, no longer used
-bool GPS_LOCKED = false; // similar to GPS_LOCK except that this takes 5 minutes of no GPS hits to turn to false; if there's no good GPS hits after 5 minutes (300 seconds), then resort to backup logic
-int System_Time_Min = 0; // this is the time since the balloon crossed 5000 feet (essentially when the flight has begun)
 float latitude, lon, altFeet; //GPS variables for positioning
 int gpsHR, gpsMIN, gpsSEC; // GPS variables for time stamp
 int preVentingTimeS1; //Acts as the count for the first pre-vent
@@ -141,14 +148,7 @@ int finishventTimeS1 = 10000000; // saves the time when the first pre-vent finis
 int finishventTimeS2 = 10000000; // saves the time when the second pre-vent finished
 int finishBigVentTimeS = 1000000;
 int finishVentToFloat = 1000000;
-//MIGHT NOT NEED BELOW
-int roundsOfVenting1 = 0;
-int roundsOfVenting2 = 0;
-int roundsOfBigVent = 0;
-bool moreVent = true; // for when venting has reduced the ascent rate for more than 50%
-bool reachedDesiredRateReduction1 = false;
-bool reachedDesiredRateReduction2 = false;
-//MIGHT NOT NEED ABOVE
+
 String ventReason = "None"; //Used to write to SD card the reason for the venting
 float avgAscentRateAt30PV1 = -999; //this and the following variables are recorded for calculations in future venting during flight
 float avgAscentRateAt60PV1 = -999;
@@ -160,8 +160,6 @@ float avgAscentRateAt60PV2 = -999;
 float avgAscentRateAt90PV2 = -999;
 float avgAscentRateAt120PV2;
 
-int estimatedTimeRequiredForBigVentPV1 = -999;
-int estimatedTimeRequiredForBigVentPV2 = -999;
 
 int terminationStartTimeS; //20 second timer to display LED patterns before terminating
 bool terminationBegun = false; //Once termination is called, this is set to true to start the termination timer
@@ -198,8 +196,7 @@ bool jigglingOpen = false;
 #define FLOAT 0x03
 #define SLOW_DESCENT 0x04
 #define DESCENT 0x05
-#define TEMP_FAILURE 0x06
-#define BATTERY_FAILURE 0x07
+#define FAST_DESCENT 0x06
 #define PAST_TIMER 0x09
 #define ERROR_STATE 0x10
 
@@ -211,7 +208,7 @@ String stateReturn;
 uint8_t stateSuggest; // state recommended by control
 uint8_t currentState = INITIALIZATION; // state we are in, starts as initialization
 uint8_t SDcounter = 0;
-uint8_t ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0;
+uint8_t ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0, fastDescentCounter = 0;
 uint8_t tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0;
 uint8_t boundsSuggest = IN_BOUNDS;
 uint8_t boundsCurrent = IN_BOUNDS;
@@ -249,32 +246,6 @@ uint8_t cutReasonA = 0x22, cutReasonB = 0x22;
 ///////////////////////**********End Of Timer and misc. variables********///////////////////////////
 ///////////////////////**********End Of Timer and misc. variables********///////////////////////////
 ///////////////////////**********End Of Timer and misc. variables********///////////////////////////
-
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
-
-#define EASTERN_BOUNDARY -92.75 // Vernon
-#define WESTERN_BOUNDARY -93.50 // Otisco
-#define SOUTHERN_BOUNDARY 43.50 // Iowa stateline
-#define NORTHERN_BOUNDARY 44.30 // Faribault
-
-bool emulationCheck = false; ///MAKE TRUE IF IN EMULATION, THIS WILL ALLOW FOR COMMUNICATION TO THE EMULATOR
-float desieredRateReduction = 10; //this is the how much you would like to reduce the ascent rate by in precentange (%)
-int preventLengthS1 = 30; // in seconds         NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int preventLengthS2 = 30; // in seconds         NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int preVentAlt1 = 70000; // in feet(ft)         NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int preVentAlt2 = 80000; // in feet(ft)         NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int bigVentAlt = 90000; //in ft                 NOT CURRENTLY SET FOR GL197: no the big vent function is used for multiple venting so this is hard coded
-int preVentTimeS1 = 80 * 60;//NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int preVentTimeS2 ; //NOT CURRENTLY SET FOR GL197: no preventing on this flight
-int terminateAlt = 90000;
-int terminateTimeS = 240 * 60; //this is time to terminate flight "master timer" usually set to 4 hours
-
-float targetAscentRateAfterBigVent = 3; //NOT CURRENTLY SET FOR GL197: the target ascent rate changes everytime big vent is called
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
-//CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT CHANGE BEFORE FLIGHT
 
 // code to initialize our system (runs only once)
 void setup() {

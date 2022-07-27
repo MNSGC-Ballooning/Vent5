@@ -4,11 +4,11 @@
 List of changes: 
 (add new lines to top of list whenever changes are made
 --------------------Format--------------------
-Date of Update:
-Editor: 
-Changes to code: 
+Date of Update: 7/27/22
+Editor: Seyon 
+Changes to code: Cleaned up code, ready to share
 ---> 
-Emulated flight tested (y/n): 
+Emulated flight tested (y/n): not needed
 Notes/Observations:
 ---> 
 Future suggestions or plans for changes: 

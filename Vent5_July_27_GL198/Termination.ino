@@ -10,7 +10,7 @@ if(emulationCheck == true){ // used only for emulation
   Serial5.print("<TERM>"); 
   }
   currTimeS = millis() / 1000; // Resetting currTimeS just in case it's off by a certain amount
-
+  openVent();
 
   if (!terminationBegun) {
     terminationStartTimeS = currTimeS;
@@ -53,7 +53,7 @@ if(emulationCheck == true){ // used only for emulation
         Res1Burned2 = true;
       }
     }
-    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != DESCENT)) { //if its been 200 seconds since beginning to burn resistor 1 for a seconds time && not below 2000 && not in decent state
+    else if (((currTimeS - burnTime1StartS) > 200) && (pressureAltFeet > 2000) && (currentState != FAST_DESCENT)) { //if its been 200 seconds since beginning to burn resistor 1 for a seconds time && not below 2000 && not in decent state
       if (!Res1on) //burn resistor 1 a third time 
       {
         burnTime1StartS = currTimeS;
@@ -105,11 +105,6 @@ if(emulationCheck == true){ // used only for emulation
         Res2Burned2 = true;
       }
     }
-    // Commented out for this flight 04/18/22
-    //    if(Res2Burned && Res2Burned2 && (currentState == DESCENT || currentState == SLOW_DESCENT)){
-    //      openVent(); //Only open the vent if the balloon has not reached ascent or slow ascent after the second resistor cut. We now intend for the balloon to burst to get us down.
-    //      ventReason = "Permanent vent opening";
-    //  }
   }
   if(emulationCheck == true){ // used only for emulation 
   Serial5.print("<TERM>"); 

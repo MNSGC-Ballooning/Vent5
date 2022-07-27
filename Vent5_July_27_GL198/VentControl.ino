@@ -19,12 +19,12 @@ void VentToFloat(unsigned long currTimeS, double avg_ascent_rate) {
     ventReason = "Venting to float";
   }
   if (!AlreadyFinishedVentToFloat) {
-    if (currentState == FLOAT || avg_ascent_rate <= 0.25) {
+    if (currentState == FLOAT || avg_ascent_rate <= 0.4) {
       AlreadyFinishedVentToFloat = true;
       finishVentToFloat = currTimeS;
       closeVent();
-      if (avg_ascent_rate <= 0.25) {
-        ventReason = "Finished venting avg ascent rate <= 0.25";
+      if (avg_ascent_rate <= 0.4) {
+        ventReason = "Finished venting avg ascent rate <= 0.4";
       }
       else {
         ventReason = "Finished venting because we are in float state";
@@ -37,9 +37,6 @@ void VentToFloat(unsigned long currTimeS, double avg_ascent_rate) {
     }
   }
 }//end of vent to float statement
-
-
-
 
 
 // ***********************************************************Big Vent******************************************************
@@ -90,19 +87,13 @@ void bigVent(unsigned long currTimeS, double avg_ascent_rate) {
 }//end of bigVent statement
 
 
-/* Here is the call for an estimated time that is required for the big vent when running
-   //at the beginning of this prevent find the estimated time needed to vent using the following function
-  //need to change the postVentAveAscentRate variable to one of the aveAscentRateAt#s
-  secondsToVent(beforeRate, avgAscentRateAt120PV1, average_ascent_rate, targetAscentRateAfterBigVent, preventLengthS1);
-*/
-
 // *********************************************************** Pre-Venting Functions ***********************************************************
 // *********************************************************** Pre-Venting Functions ***********************************************************
 
 // Function to (hopefully) increase our balloon's altitude ceiling, so that we don't prematurely burst! Commented pieces of logic aren't entirely "fleshed-out"
 void PreVenting1(unsigned long currTimeS, double avg_ascent_rate) //Two pieces of logic are included here; one is commented out. The first is a timed vent opening, the 2nd is based on ascent rate.
 {
-  isVentingAllowed(); //checks if ascent rate is below 2.5
+  isVentingAllowed(); //checks if ascent rate is below 1m/s
   if (!AlreadyStartedPreVenting1) //if havent already started preventing
   {
     AlreadyStartedPreVenting1 = true;
@@ -160,10 +151,9 @@ void PreVenting2(unsigned long currTimeS, double avg_ascent_rate) //Two pieces o
     ventReason = "Closed after second pre-vent";
     AlreadyFinishedPreventing2 = true;
     finishventTimeS2 = currTimeS;
-    roundsOfVenting2++;
+    
 
     Serial.println("Completing second pre-vent");
-    Serial.println("Rounds Of Venting: " + String(roundsOfVenting2));
     Serial.println("Length of Venting: " + String(finishventTimeS1 - preVentingTimeS1));
   }
 
@@ -205,25 +195,12 @@ void avgAscentRateAfterVenting(bool ventingIsFinished, int timeEndedVenting, int
 
 ///<<<<<<<<<<<<<<<<<<<------------------- Funciton that finds the calculated seconds needed to vent to get the desired ascent rate
 
-//this function shoudl be ran before prevent 2 and big vent functions uses the amout the previous vent reduced the ascent rate and the current ascent rate to get a estimate for the time required to
-//vent the next time
-int secondsToVent(float beforeVentAvgAscentRate, float postVentAvgAscentRate, float currentAvgAscentRate, float targetAscentRate, int lengthOfLastVent) {
-  //finding the reduction of ascentRate per seconds of venting
 
-  float ascentRateReductionPerSecond = (postVentAvgAscentRate - beforeVentAvgAscentRate) / float(lengthOfLastVent);
-  Serial.println("ascent rate reduction per second :" + String(ascentRateReductionPerSecond));
-
-  //finding seconds to vent in the next vent to reach required. this is staying an int and not rounding to air on the side of venting less than needed rather than more
-
-  int lengthOfNextVentS = (targetAscentRate - currentAvgAscentRate) / (ascentRateReductionPerSecond);
-  Serial.println("lengthOfNextVentS :" + String(lengthOfNextVentS));
-  return lengthOfNextVentS;
-}
-
-//isVentingAllowed() function. checks if the averave ascent rate is below 1 if true sets all venting variables to true
+//isVentingAllowed() function. checks if the average ascent rate is below 1 if true sets all venting variables to true
 void isVentingAllowed() {
   if (avg_ascent_rate <= 1) {
     Serial.println("No more Venting Allowed because ascent Rate is to low ( <=1 )");
+    closeVent(); //closing the vent in order to preserve the ascent rate
     ventReason = "No Venting, aveAR <= 1";
 
     AlreadyStartedPreVenting1 = true;
@@ -238,20 +215,14 @@ void isVentingAllowed() {
   }
 }
 
-
-
 // **************************************************************************HELPER FUNCTIONS FOR SERVO CONTROL AND POSITION MONITORING***********************************************************
 // **************************************************************************HELPER FUNCTIONS FOR SERVO CONTROL AND POSITION MONITORING***********************************************************
 
 // Function to open the vent (simply command the servo to rotate to the proper position)
 void openVent() {
-  commandedServoPosition = openServo;
   ventServo.write(openServo);
 
-  //releaseServo.write(0);
   flapperState = "Open";
-
-  //  jiggle(servoMinPos); // servoMinPos is the minimum position in degrees that the servo can move to as found in the first loop of system update
 
   if (emulationCheck == true && ventSent == false) { //bool condition for communication to emulator ////NEW
     Serial5.print("<RATE" + String(avg_ascent_rate) + ">");
@@ -259,23 +230,13 @@ void openVent() {
     Serial5.print("<VENT1>");                 //communicating with the emulator that the vent has been opened
     ventSent = true;
   }
-  Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
 }
 
 // Function to close the vent (simply command the servo to rotate to the proper position)
 void closeVent() {
-  commandedServoPosition = closeServo;
   ventServo.write(closeServo);
 
-  //releaseServo.write(0);
   flapperState = "Closed";
-
-  //if closeVent is called from system setup then make sure that the close vent degrees are the same
-  if (servoSetupFinished == false) {
-    Serial.println("commandedServoPosition: " + String(commandedServoPosition) + "    ServoPosition: " + String(servoPos()));
-  }
-
-  // jiggle(servoMaxPos); //calling jiggle function, servoMaxPos is the maximum position in degrees that the servo can move to as found in the first loop of system update
 
   if (emulationCheck == true && ventSent == true) { //bool condition for communication to emulator   ////NEW
     Serial5.print("<VENT0>");                      //telling emulator that the vent has been closed
@@ -284,80 +245,10 @@ void closeVent() {
 
 }
 
-/////////////////////////////////////////////////////////////////////// THE JIGGLE FUNCTION dun dun dun /////////////////////////////////////////////////////
-/* Function to jiggle the servo if the servo is not within a specified range (Currently +/- 40 degrees) ie it got stuck for some reason
-  Keep in mind: The range of +/- 40 is because there is not currently a fix for the servoPosition discrepency issue. possibly this is caused by calibration issue of output voltage when
-  getting the servoPos values. has not been resolved.
-
-*/
-
-void jiggle(int desiredServoPosition) {
-  Serial.println("GOING INTO JIGGLE");
-
-  //starting jiggle timer and setting jiggletimerStarted to true
-  if (!jiggleTimerStarted) {
-    jiggleTimerStarted = true;
-    jiggleTimer = currTimeS;
-  }
-
-  if (jiggleTimer + 5 < currTimeS && jiggleTimerStarted) //checks to see if has been jiggling for 5 seconds, if not yet 5 then continue
-  {
-    Serial.println("Checking servoPos: " + String(servoPos()) + "     Checking desiredServoPosition: " + String(desiredServoPosition));
-
-    if ((servoPos() < (desiredServoPosition - 20) || servoPos() > (desiredServoPosition + 20)) && jiggleTimer + 5 < currTimeS)
-      //above if statement checks if the servo is more than 40 degrees away from commandedServoPosition (132) --> closedServo is a variabel that can differ for each mechanisim
-    { //The servo is out of position- this attempts to "jiggle" the servo back into position. Delays are used since this takes priority
-      Serial.println("############Jiggle delay jiggle delay ##################\nServo Pos: " + String(servoPos()));
-
-      ventServo.write(desiredServoPosition - 10); //the "jiggling doesnt appear for closeVent because it does minus first
-      delay(500);
-      ventServo.write(desiredServoPosition + 10);
-      delay(500);
-      ventServo.write(desiredServoPosition - 10);
-      delay(500);
-      ventServo.write(desiredServoPosition + 10);
-      delay(500);
-      ventServo.write(desiredServoPosition);
-    }
-    ventServo.write(desiredServoPosition);
-    jiggleTimerStarted = false;
-  }
-}
-/////////////////////////////////////////////////////////////////////// END OF JIGGLE FUNCTION /////////////////////////////////////////////////////
-
-//function to check if the desired ascent rate has been reached.
-//inputs are ascent rate befeor venting (before rate) the current ascent rate, and desired ascent rate reduction in percentage
-//output is a bool telling if the current ascent rate is <= the desired ascent rate
-bool ascentRateReached(double beforeRate, double currentRate, double desiredRateReduction) { //NOTE: THE CURRENT RATE MIGHT WANT TO BE THE AVERAGE ASCENT RATE
-  bool outputBool;
-  //calculating percentage that prevent ascentrate has dropped since beginning of prevent 1 sequence
-  double actualAscentRateReduction = 100  - ((currentRate / beforeRate) * 100);
-  Serial.println("Ascent Rate Reduction: " + String(actualAscentRateReduction));
-
-  //checking if current ascent rate has sufficiently been reduced
-  if (actualAscentRateReduction >= desiredRateReduction) {
-    outputBool = true;
-    if (actualAscentRateReduction > 50) { //if the actual ascent rate reduction is more than half you dont need to vent any more
-      moreVent = false; //this bool says whether the Vent should be allowed to do any more prevent or big venting
-    }
-  }
-  else {
-    outputBool = false;
-  }
-
-  return outputBool;
-}
-
-
-
-
-
-
-
 // Function to obtain the current position of the servo via its analog feedback pin (might need some work)
 int servoPos() // obtain the position of the servo through the analog pin
 {
   int val = analogRead(FEEDBACK_PIN);            // Feedback is pin A2 on the current Teensy 3.5 / PCB setup - reads the value of the potentiometer (value between 0 and 1023)
-  val = map(val, 0, 16383, 0, 179);       // scale it to use it with the servo (value between 0 and 180)
+  val = map(val, 255, 16383, 0, 180);       // scale it to use it with the servo (value between 0 and 180)
   return val;
 }

@@ -46,8 +46,13 @@ void Control() {
   if (ascent_rate <= -0.508 && ascent_rate > -1.905) {
     stateSuggest = SLOW_DESCENT;
   }
-  if (ascent_rate <= -1.905) {
+  if (ascent_rate <= -1.905 && ascent_rate > -10.0) {
     stateSuggest = DESCENT;
+  }
+
+  //adding parachute decent state to be used for the third resistor burn 
+  if(ascent_rate <= -10.0){
+    stateSuggest = FAST_DESCENT;
   }
 
   if (((lon > EASTERN_BOUNDARY) || (lon < WESTERN_BOUNDARY) || (latitude > NORTHERN_BOUNDARY) || (latitude < SOUTHERN_BOUNDARY)) && !((lon == 0) && (latitude == 0))) {
@@ -78,7 +83,7 @@ String State() {
 
       if (currentState != ASCENT) { // criteria for entering Ascent functionality
         ascentCounter += 1; // increment ascent counter
-        SAcounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0;
+        SAcounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0, fastDescentCounter = 0;
         tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
 
         if (ascentCounter >= 30 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 30 consecutive state suggestions
@@ -111,7 +116,7 @@ String State() {
 
       if (currentState != SLOW_ASCENT) { // criteria for entering Slow Ascent functionality
         SAcounter += 1; // increment slow ascent counter
-        ascentCounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0;
+        ascentCounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0, fastDescentCounter = 0;
         tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
 
         if (SAcounter >= 60 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 60 consecutive state suggestions
@@ -144,7 +149,7 @@ String State() {
 
       if (currentState != FLOAT) { // criteria for entering Float functionality
         floatCounter += 1; // increment float counter
-        ascentCounter = 0, SAcounter = 0, SDcounter = 0, descentCounter = 0;
+        ascentCounter = 0, SAcounter = 0, SDcounter = 0, descentCounter = 0, fastDescentCounter = 0;
         tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
 
         FARcounter = 0;
@@ -178,7 +183,7 @@ String State() {
 
       if (currentState != SLOW_DESCENT) { // criteria for entering Slow Descent functionality
         SDcounter += 1; // increment slow descent counter
-        ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0;
+        ascentCounter = 0, SAcounter = 0, floatCounter = 0, descentCounter = 0, fastDescentCounter = 0;
         tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
 
         if (SDcounter >= 30 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 30 consecutive state suggestions
@@ -211,7 +216,7 @@ String State() {
 
       if (currentState != DESCENT) { // criteria for entering Descent functionality
         descentCounter += 1; // increment descent counter
-        ascentCounter = 0, SAcounter = 0, floatCounter = 0, SDcounter = 0;
+        ascentCounter = 0, SAcounter = 0, floatCounter = 0, SDcounter = 0, fastDescentCounter = 0;
         tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
 
         if (descentCounter >= 30 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 30 consecutive state suggestions
@@ -230,32 +235,24 @@ String State() {
 
       break;
 
-    ////TEMPERATURE FAILURE//// To be added later... REVIEW AND ADJUST BEFORE USING
-    /* case TEMP_FAILURE:
+       ////FAST_DESCENT////
+    case FAST_DESCENT:
 
-      if (currentState!=TEMP_FAILURE){ // criteria for entering Temperature Failure functionality
-        tempCounter += 1; // increment temperature failure counter
+      Serial.println("Suggested State: Fast Descent");
+      stateReturn = "Fast_Descent"; //FOR TESTING PURPOSES
+
+      if (currentState != FAST_DESCENT) { // criteria for entering Descent functionality
+        fastDescentCounter += 1; // increment descent counter
         ascentCounter = 0, SAcounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0;
-        battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
+        tempCounter = 0, battCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
+
+        if (fastDescentCounter >= 30 && altFeet > ALTITUDE_FLOOR) { // doesn't activate below floor or before 30 consecutive state suggestions
+          currentState = FAST_DESCENT;
+        }
       }
 
-      if (currentState==TEMP_FAILURE){ // operations while in temperature failure
-        cutResistorOnA();
-        cutResistorOnB();
-      }*/
+      break;
 
-    ////BATTERY FAILURE////To be added later... REVIEW AND ADJUST BEFORE USING
-    /*case BATTERY_FAILURE:
-      if (currentState!=BATTERY_FAILURE){ // criteria for entering Battery Failure functionality
-        battCounter += 1; // increment battery failure counter
-        ascentCounter = 0, SAcounter = 0, floatCounter = 0, SDcounter = 0, descentCounter = 0;
-        tempCounter = 0, boundCounter = 0, timerCounter = 0; // reset all other state counters
-      }
-
-      if (currentState==BATTERY_FAILURE){ // operations while in battery failure
-        cutResistorOnA();
-        cutResistorOnB();
-      }*/
 
     ////OUT OF BOUNDARY////
     case OUT_OF_BOUNDS:  //for GL196 there is no out of bounds set currently to suggest State
