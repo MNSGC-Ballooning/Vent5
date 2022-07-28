@@ -11,6 +11,7 @@ String comm = " ";
 
 void radioSetup() {
   Serial.println("Setting up the the Xbee Radio");
+  /*
   char xbeeChannel = 'B';
   xbeeSerial.begin(9600);   // Xbee Baud rate is 9600
   xbee.init(xbeeChannel);   // Need to make sure xbees on both ends have the same identifier. This sets "AAAA"
@@ -18,7 +19,8 @@ void radioSetup() {
   xbee.atCommand("ATDL0");
   xbee.atCommand("ATMY1");
   xbee.exitATmode();
-  Serial.println("Finished Setting up the Xbee Radio");
+  */
+  Serial.println("Finished Setting up the Xbee Radio, NOT ACTUALLY HAHAHA, there is the set up commented out before this line because I am testing something");
   xbeeSerial.write("Hi, I'm the vent radio and I am paired and working");
 }
 

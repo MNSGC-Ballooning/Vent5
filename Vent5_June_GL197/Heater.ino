@@ -10,7 +10,7 @@ float A = 0.001125308852122; // A, B, and C are constants used for a 10k resisto
 float B = 0.000234711863267;
 float C = 0.000000085663516; 
 float R1 = 10000; // 10k Ω resistor
-float Tinv;
+float Tinv; 
 float adcVal;
 float logR;
 float T; // these three variables are used for the calculation from adc value to temperature

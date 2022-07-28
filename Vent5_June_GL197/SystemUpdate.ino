@@ -45,8 +45,9 @@ void systemUpdate()
         servoSetupFinished = true;
       }
     } else {
-      Serial.println("Servo min/max failed, looping again");
+      Serial.println("Servo min/max failed");
       Serial.println("Found servo max: " + String(servoMaxPos) + "    found servo min: " + String(servoMinPos));
+      servoSetupFinished = true; //
     }
     ventServo.write(closeServo);
     delay(1000);
